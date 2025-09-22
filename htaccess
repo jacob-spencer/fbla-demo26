@@ -1,0 +1,45 @@
+RewriteEngine On
+
+# Remove .php extension from URLs
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# Handle API routes
+RewriteRule ^api/(.*)$ api/$1 [NC,L]
+
+# Redirect index to root
+RewriteRule ^index/?$ / [R=301,L]
+
+# Set environment variables for development
+# This shouldn't have a purpose but if I delete it it breaks everything.
+# Migrated from PostgreSQL to MySQL but it's still needed?
+SetEnv DATABASE_URL "postgresql://user:password@localhost:5432/localconnect"
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+# Cache static assets
+<FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg)$">
+    Header set Cache-Control "max-age=2592000, public"
+</FilesMatch>
+
+# Deny access to sensitive files
+<FilesMatch "\.(sql|log|env)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to config files
+<Files "config.php">
+    Require all denied
+</Files>
+
+<Files "database.php">
+    Require all denied
+</Files>
+
+<Files "functions.php">
+    Require all denied
+</Files>
