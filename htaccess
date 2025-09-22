@@ -31,7 +31,7 @@ Header always set X-XSS-Protection "1; mode=block"
     Require all denied
 </FilesMatch>
 
-# Deny access to config files
+# Deny access to config/function files
 <Files "config.php">
     Require all denied
 </Files>
