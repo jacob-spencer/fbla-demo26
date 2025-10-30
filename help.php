@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded",()=>{let e=document.getElementById(
             $faqs = [
                 [
                     'question' => 'What is Mainstreet?',
-                    'answer' => 'Mainstreet is a [brief description of your business — e.g., platform/service/tool] designed to help [target users] with [main benefit or service offered].'
+                    'answer' => 'Mainstreet is a platform that helps users discover and support small, local businesses in their community. At Mainstreet, our mission is to strengthen local connections by spotlighting the small, local businesses that make our community unique. We aim to inspire residents to shop locally, engage deeply, and take pride in supporting the people and places that keep our neighborhoods thriving.'
                 ],
                 [
                     'question' => 'Is my personal data secure?',
