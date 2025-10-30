@@ -32,6 +32,7 @@ Mainstreet.lt is a local business discovery platform that helps users connect wi
 - PHP 8.2
 - MySQL DB
 - Tailwind
+- Leaflet.js
 
 ## Getting Started
 
