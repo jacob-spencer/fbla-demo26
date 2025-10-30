@@ -6,22 +6,113 @@ $pageDescription = 'Terms of Service';
 
 include 'includes/header.php';
 ?>
+<style>
+/* Glowing wave effect */
+html, body {
+    overflow-x: hidden; /* prevent horizontal scrolling */
+    overflow-y: auto hidden;   /* allow vertical scroll */
+}
+.wave-left-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-left-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+@keyframes waveLeft {
+    0% { transform: translateX(-40%); }
+    100% { transform: translateX(-40%); }
+}
+@keyframes waveRight {
+    0% { transform: translateX(40%); }
+    100% { transform: translateX(40%); }
+}
+#waves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;          /* will be updated via JS */
+    z-index: -10;
+    overflow: hidden;      /* keep wave shapes from spilling outside */
+}
+</style>
+
+<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("waves");
+
+    const wavePatterns = [
+        { classes: "left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top", verticalOffset: -0.25 },
+        { classes: "-left-1/2 w-[90vw] h-[90vh] wave-left-top", verticalOffset: 0.33 },
+        { classes: "left-1/2 w-[100vw] h-[75vh] wave-left-bottom", verticalOffset: 0.66 },
+        { classes: "-left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },
+        { classes: "left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },
+        { classes: "left-1/2 w-[100vw] h-[70vh] wave-left-bottom", verticalOffset: -0.2 },
+    ];
+
+    function spawnWaves() {
+        container.innerHTML = "";
+        const pageHeight = document.body.scrollHeight;
+        const sectionHeight = window.innerHeight;
+        const numSections = Math.ceil(pageHeight / sectionHeight);
+
+        for (let i = 0; i < numSections; i++) {
+            const offsetY = i * sectionHeight;
+
+            wavePatterns.forEach(cfg => {
+                const div = document.createElement("div");
+                div.className = `absolute ${cfg.classes}`;
+
+                // Calculate vertical position in pixels
+                const waveOffset = cfg.verticalOffset ? cfg.verticalOffset * sectionHeight : 0;
+                div.style.top = `${offsetY + waveOffset}px`;
+
+                container.appendChild(div);
+            });
+        }
+    }
+
+    function resizeWavesContainer() {
+        container.style.height = document.body.scrollHeight + "px";
+    }
+
+    // Spawn waves after everything (images + content) is loaded
+    window.addEventListener("load", () => {
+        resizeWavesContainer();
+        spawnWaves();
+    });
+
+    // Recalculate on resize
+    window.addEventListener("resize", () => {
+        resizeWavesContainer();
+        spawnWaves();
+    });
+});
+</script>
 
 <!-- Hero Section -->
-<section class="hero-gradient text-white py-20">
+<section class="text-white pt-40 pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h1 class="text-5xl md:text-6xl font-bold mb-6">
             Terms of
             <span class="text-accent">Service</span>
         </h1>
         <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
-            At {business_name}, we ask you to use our platform responsibly. Take a moment to review our Terms of Service.
+            At Mainstreet.lt, we ask you to use our platform responsibly. Take a moment to review our Terms of Service.
         </p>
     </div>
 </section>
 
 <!-- Categories Section -->
-<section class="py-16 bg-muted/50">
+<section class="py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-12">
             <h2 class="text-3xl font-bold text-foreground mb-4">Terms of Service</h2>

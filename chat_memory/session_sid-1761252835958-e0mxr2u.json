@@ -1,0 +1,10 @@
+[
+    {
+        "role": "user",
+        "content": "When is this business open?"
+    },
+    {
+        "role": "assistant",
+        "content": "<h1>Business Hours<\/h1>\n<ul>\n  <li><strong>Monday:<\/strong> 7:00\u202fAM \u2013 5:00\u202fPM<\/li>\n  <li><strong>Tuesday:<\/strong> 7:00\u202fAM \u2013 5:00\u202fPM<\/li>\n  <li><strong>Wednesday:<\/strong> 7:00\u202fAM \u2013 5:00\u202fPM<\/li>\n  <li><strong>Thursday:<\/strong> 7:00\u202fAM \u2013 5:00\u202fPM<\/li>\n  <li><strong>Friday:<\/strong> 7:00\u202fAM \u2013 5:00\u202fPM<\/li>\n  <li><strong>Saturday:<\/strong> 7:00\u202fAM \u2013 5:00\u202fPM<\/li>\n  <li><strong>Sunday:<\/strong> Open 24\u202fhours<\/li>\n<\/ul>\n\n<p>Current time (UTC): <strong>2025\u201110\u201123\u202f20:58<\/strong> \u2013 Thursday.<\/p>\n<p>The business is <strong>closed<\/strong> now; it closes at 5:00\u202fPM on Thursdays.<\/p>\n<p>The next opening time is <strong>Friday at 7:00\u202fAM<\/strong>.<\/p>\n\n<p>Hope that helps! Have a great day! \ud83c\udf1f<\/p>"
+    }
+]

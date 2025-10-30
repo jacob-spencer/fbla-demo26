@@ -7,8 +7,102 @@ $pageDescription = 'Privacy Policy';
 include 'includes/header.php';
 ?>
 
+<style>
+/* Glowing wave effect */
+html, body {
+    overflow-x: hidden; /* prevent horizontal scrolling */
+    overflow-y: auto hidden;   /* allow vertical scroll */
+}
+.wave-left-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-left-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+@keyframes waveLeft {
+    0% { transform: translateX(-40%); }
+    100% { transform: translateX(-40%); }
+}
+@keyframes waveRight {
+    0% { transform: translateX(40%); }
+    100% { transform: translateX(40%); }
+}
+#waves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;          /* will be updated via JS */
+    z-index: -10;
+    overflow: hidden;      /* keep wave shapes from spilling outside */
+}
+</style>
+
+<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("waves");
+
+    // Wave patterns: horizontal placement via Tailwind, vertical offset handled in JS
+    const wavePatterns = [
+        { classes: "left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top", verticalOffset: -0.25 },
+        { classes: "-left-1/2 w-[90vw] h-[90vh] wave-left-top", verticalOffset: 0.33 },
+        { classes: "left-1/2 w-[100vw] h-[75vh] wave-left-bottom", verticalOffset: 0.66 },
+        { classes: "-left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },
+        { classes: "left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },
+        { classes: "left-1/2 w-[100vw] h-[70vh] wave-left-bottom", verticalOffset: -0.2 },
+    ];
+
+    function spawnWaves() {
+        container.innerHTML = "";
+        const pageHeight = document.body.scrollHeight;
+        const sectionHeight = window.innerHeight;
+        const numSections = Math.ceil(pageHeight / sectionHeight);
+
+        for (let i = 0; i < numSections; i++) {
+            const offsetY = i * sectionHeight;
+
+            wavePatterns.forEach(cfg => {
+                const div = document.createElement("div");
+                div.className = `absolute ${cfg.classes}`;
+
+                // Calculate vertical position in pixels
+                const waveOffset = cfg.verticalOffset ? cfg.verticalOffset * sectionHeight : 0;
+                div.style.top = `${offsetY + waveOffset}px`;
+
+                container.appendChild(div);
+            });
+        }
+    }
+
+    function resizeWavesContainer() {
+        container.style.height = document.body.scrollHeight + "px";
+    }
+
+    // Spawn waves after everything (images + content) is loaded
+    window.addEventListener("load", () => {
+        resizeWavesContainer();
+        spawnWaves();
+    });
+
+    // Recalculate on resize
+    window.addEventListener("resize", () => {
+        resizeWavesContainer();
+        spawnWaves();
+    });
+});
+</script>
+
+
 <!-- Hero Section -->
-<section class="hero-gradient text-white py-20">
+<section class="text-white pt-40 pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h1 class="text-5xl md:text-6xl font-bold mb-6">
             Your Privacy
@@ -62,7 +156,7 @@ include 'includes/header.php';
             <h2 class="text-xl font-semibold text-foreground mt-8 mb-4">5. Your Privacy Rights</h2>
             <p class="text-foreground mb-4">
                 Depending on your location, you may have rights under privacy laws including:
-                The right to access, correct, delete your personal data, opt out of marketing, and request data portability. To exercise any of these rights, contact us at <a href="mailto:contact@mainstreet.bargains">contact@mainstreet.bargains</a>.
+                The right to access, correct, delete your personal data, opt out of marketing, and request data portability. To exercise any of these rights, contact us at <a href="mailto:contact@mainstreet.lt">contact@mainstreet.lt</a>.
             </p>
 
             <h2 class="text-xl font-semibold text-foreground mt-8 mb-4">6. Data Retention</h2>
@@ -94,8 +188,7 @@ include 'includes/header.php';
             <p class="text-foreground mb-4">
                 If you have any questions or concerns about this Privacy Policy, please contact us at:<br>
                 <strong>Mainstreet</strong><br>
-                [Your Company Address]<br>
-                <a href="mailto:contact@mainstreet.com">contact@mainstreet.com</a>
+                <a href="mailto:contact@mainstreet.lt">contact@mainstreet.lt</a>
             </p>
         </div>
     </div>

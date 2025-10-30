@@ -20,15 +20,58 @@ $deals = $db->fetchAll("
 include 'includes/header.php';
 ?>
 
-<main class="min-h-screen bg-background">
+<style>
+/* Glowing wave effect */
+html, body {
+    overflow-x: hidden; /* prevent horizontal scrolling */
+    overflow-y: auto hidden;   /* allow vertical scroll */
+}
+.wave-left-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-left-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+@keyframes waveLeft {
+    0% { transform: translateX(-40%); }
+    100% { transform: translateX(-40%); }
+}
+@keyframes waveRight {
+    0% { transform: translateX(40%); }
+    100% { transform: translateX(40%); }
+}
+#waves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;          /* will be updated via JS */
+    z-index: -10;
+    overflow: hidden;      /* keep wave shapes from spilling outside */
+}
+</style>
+
+<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
+
+<script>
+document.addEventListener("DOMContentLoaded",()=>{let e=document.getElementById("waves"),t=[{classes:"left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top",verticalOffset:-.25},{classes:"-left-1/2 w-[90vw] h-[90vh] wave-left-top",verticalOffset:.33},{classes:"left-1/2 w-[100vw] h-[75vh] wave-left-bottom",verticalOffset:.66},{classes:"-left-1/2 w-[80vw] h-[85vh] wave-right-bottom",verticalOffset:0},{classes:"left-1/2 w-[80vw] h-[85vh] wave-right-bottom",verticalOffset:0},{classes:"left-1/2 w-[100vw] h-[70vh] wave-left-bottom",verticalOffset:-.2},];function l(){e.innerHTML="";let l=document.body.scrollHeight,s=window.innerHeight,a=Math.ceil(l/s);for(let v=0;v<a;v++){let f=v*s;t.forEach(t=>{let l=document.createElement("div");l.className=`absolute ${t.classes}`;let a=t.verticalOffset?t.verticalOffset*s:0;l.style.top=`${f+a}px`,e.appendChild(l)})}}function s(){e.style.height=document.body.scrollHeight+"px"}window.addEventListener("load",()=>{s(),l()}),window.addEventListener("resize",()=>{s(),l()})});
+</script>
+
+<main class="min-h-screen">
     <!-- Hero Section -->
-    <section class="hero-gradient text-white py-16">
+    <section class="text-white pt-36 pb-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 class="text-4xl md:text-5xl font-bold mb-4">
                 Exclusive <span class="text-accent">Deals</span>
             </h1>
-            <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-                Discover amazing offers and discounts from local businesses in your community
+            <p class="text-xl text-white/90 max-w-2xl mx-auto">
+                Discover amazing offers from local businesses in your community
             </p>
         </div>
     </section>
@@ -39,16 +82,19 @@ include 'includes/header.php';
             <?php if (!empty($deals)): ?>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach ($deals as $deal): ?>
-                <div class="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm rounded-xl transition-all duration-200 border border-border hover:border-primary/50 overflow-hidden">
                     <div class="relative">
                         <img src="<?php echo escapeHtml($deal['business_image'] ?: 'fbla-waves.png'); ?>" 
                              alt="<?php echo escapeHtml($deal['business_name']); ?>" 
                              class="w-full h-48 object-cover">
                         <div class="absolute top-3 left-3 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm font-semibold">
-                            <?php echo escapeHtml($deal['discount_value']); ?> OFF
+                            <?php
+                                $value = $deal['discount_type'] === 'percentage' ? escapeHtml($deal['discount_value']) . '%' : '$' . escapeHtml($deal['discount_value']);
+                                echo $value . ' OFF';
+                            ?>
                         </div>
                         <div class="absolute top-3 right-3 bg-accent text-black px-2 py-1 rounded text-xs font-medium">
-                            <?php echo strtoupper($deal['discount_type']); ?>
+                            <?php echo strtoupper(escapeHtml($deal['discount_type'])); ?>
                         </div>
                     </div>
                     <div class="p-6">
@@ -69,7 +115,7 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <a href="/business.php?id=<?php echo urlencode($deal['business_id']); ?>" 
+                            <a href="/business?id=<?php echo urlencode($deal['business_id']); ?>" 
                                class="text-primary hover:text-primary/80 font-medium text-sm">
                                 View Business
                             </a>
@@ -84,14 +130,14 @@ include 'includes/header.php';
             </div>
             <?php else: ?>
             <div class="text-center py-16">
-                <div class="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <div class="w-20 h-20 bg-card/40 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i data-lucide="tag" class="w-8 h-8 text-muted-foreground"></i>
                 </div>
                 <h3 class="text-2xl font-semibold text-foreground mb-4">No deals available</h3>
                 <p class="text-muted-foreground max-w-md mx-auto mb-6">
                     Check back soon as local businesses add new exclusive offers and discounts!
                 </p>
-                <a href="/discover.php" class="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors">
+                <a href="/discover" class="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors">
                     Discover Businesses
                 </a>
             </div>
@@ -131,32 +177,7 @@ include 'includes/header.php';
 </div>
 
 <script>
-lucide.createIcons();
-
-function showDealCode(dealId, promoCode) {
-    document.getElementById('promoCode').textContent = promoCode;
-    document.getElementById('dealModal').style.display = 'flex';
-}
-
-function closeDealModal() {
-    document.getElementById('dealModal').style.display = 'none';
-}
-
-function copyPromoCode() {
-    const promoCode = document.getElementById('promoCode').textContent;
-    navigator.clipboard.writeText(promoCode).then(function() {
-        // Show success feedback
-        const button = event.target;
-        const originalText = button.textContent;
-        button.textContent = 'Copied!';
-        button.classList.add('bg-green-100', 'text-green-800');
-        
-        setTimeout(() => {
-            button.textContent = originalText;
-            button.classList.remove('bg-green-100', 'text-green-800');
-        }, 2000);
-    });
-}
+function showDealCode(e,t){document.getElementById("promoCode").textContent=t,document.getElementById("dealModal").style.display="flex"}function closeDealModal(){document.getElementById("dealModal").style.display="none"}function copyPromoCode(){let e=document.getElementById("promoCode").textContent;navigator.clipboard.writeText(e).then(function(){let e=event.target,t=e.textContent;e.textContent="Copied!",e.classList.add("bg-green-100","text-green-800"),setTimeout(()=>{e.textContent=t,e.classList.remove("bg-green-100","text-green-800")},2e3)})}lucide.createIcons();
 </script>
 
 <?php include 'includes/footer.php'; ?>

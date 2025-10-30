@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     
         <div class="flex justify-end space-x-4">
-            <a href="my-business.php" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">Cancel</a>
+            <a href="my-business" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">Cancel</a>
             <button type="submit" class="px-6 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg">
                 Create Deal
             </button>

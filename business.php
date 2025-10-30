@@ -96,7 +96,7 @@
     
     if ($sort === 'highest') {
         $reviews = $db->fetchAll("
-            SELECT r.*, u.first_name, u.last_name, u.profile_image_url 
+            SELECT r.*, u.first_name, u.last_name, u.profile_image_url, u.username  
             FROM reviews r 
             LEFT JOIN users u ON r.user_id = u.id 
             WHERE r.business_id = ?
@@ -104,7 +104,7 @@
         ", [$businessId]);
     } else { // newest
         $reviews = $db->fetchAll("
-            SELECT r.*, u.first_name, u.last_name, u.profile_image_url 
+            SELECT r.*, u.first_name, u.last_name, u.profile_image_url, u.username 
             FROM reviews r 
             LEFT JOIN users u ON r.user_id = u.id 
             WHERE r.business_id = ?
@@ -128,24 +128,6 @@
         $isBookmarked = (bool)$bookmark;
     }
     
-    // Render stars with colored/filled Lucide icons
-    // Major performance impact 
-    // Use renderStars in functions.php for more efficient Unicode star render
-    /*
-    function renderStarsLucide($rating) {
-        $output = '';
-        for ($i = 1; $i <= 5; $i++) {
-            if ($i <= $rating) {
-                // Filled star (yellow)
-                $output .= '<i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400 inline-block"></i>';
-            } else {
-                // Empty star (gray)
-                $output .= '<i data-lucide="star" class="w-5 h-5 text-gray-300 inline-block"></i>';
-            }
-        }
-        return $output;
-    }
-    */
     $business['is_open'] = false;
     if (!empty($business['opening_hours']) && !empty($business['timezone'])) {
         $business['is_open'] = isBusinessOpen($business['opening_hours'], $business['timezone']);
@@ -156,29 +138,80 @@
     
     include 'includes/header.php';
 ?>
+<style>
+/* Glowing wave effect */
+html, body {
+    overflow-x: hidden; /* prevent horizontal scrolling */
+    overflow-y: auto hidden;   /* allow vertical scroll */
+}
+.wave-left-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-left-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+@keyframes waveLeft {
+    0% { transform: translateX(-40%); }
+    100% { transform: translateX(-40%); }
+}
+@keyframes waveRight {
+    0% { transform: translateX(40%); }
+    100% { transform: translateX(40%); }
+}
+#waves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;          /* will be updated via JS */
+    z-index: -10;
+    overflow: hidden;      /* keep wave shapes from spilling outside */
+}
+
+.fade-bottom {
+    -webkit-mask-image: linear-gradient(to top, transparent 0%, black 30%);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-image: linear-gradient(to top, transparent 0%, black 30%);
+    mask-repeat: no-repeat;
+    mask-size: 100% 100%;
+} /* fade image out cleanly */
+</style>
+
+<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
+
+<script>
+document.addEventListener("DOMContentLoaded",()=>{let e=document.getElementById("waves"),t=[{classes:"left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top",verticalOffset:-.25},{classes:"-left-1/2 w-[90vw] h-[90vh] wave-left-top",verticalOffset:.33},{classes:"left-1/2 w-[100vw] h-[75vh] wave-left-bottom",verticalOffset:.66},{classes:"-left-1/2 w-[80vw] h-[85vh] wave-right-bottom",verticalOffset:0},{classes:"left-1/2 w-[80vw] h-[85vh] wave-right-bottom",verticalOffset:0},{classes:"left-1/2 w-[100vw] h-[70vh] wave-left-bottom",verticalOffset:-.2},];function l(){e.innerHTML="";let l=document.body.scrollHeight,s=window.innerHeight,a=Math.ceil(l/s);for(let v=0;v<a;v++){let f=v*s;t.forEach(t=>{let l=document.createElement("div");l.className=`absolute ${t.classes}`;let a=t.verticalOffset?t.verticalOffset*s:0;l.style.top=`${f+a}px`,e.appendChild(l)})}}function s(){e.style.height=document.body.scrollHeight+"px"}window.addEventListener("load",()=>{s(),l()}),window.addEventListener("resize",()=>{s(),l()})});
+</script>
 
 <script>
     const existingReviews = <?php echo json_encode($reviews); ?>;
     const currentUserId = <?php echo isLoggedIn() ? (int)$_SESSION['user_id'] : 'null'; ?>;
 </script>
 
-<main class="min-h-screen bg-background">
+<main class="min-h-screen">
     <!-- Business Header -->
     <section class="relative">
-        <div class="h-64 bg-gradient-to-r from-primary to-secondary overflow-hidden">
+        <div class="relative h-96 overflow-hidden">
             <?php if ($business['banner_image_url']): ?>
-            <img src="<?php echo escapeHtml($business['banner_image_url']); ?>" 
-                 alt="<?php echo escapeHtml($business['name']); ?>" 
-                 class="w-full h-full object-cover">
+                <img src="<?php echo escapeHtml($business['banner_image_url']); ?>" 
+                     alt="<?php echo escapeHtml($business['name']); ?>" 
+                     class="w-full h-full object-cover fade-bottom">
             <?php endif; ?>
         </div>
         
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="relative -mt-24 bg-card rounded-xl border border-border p-8 shadow-lg">
+            <div class="relative -mt-24 bg-card/60 backdrop-blur-lg rounded-xl p-8 shadow-lg">
                 <div class="flex flex-col md:flex-row items-start space-y-4 md:space-y-0 md:space-x-6">
                     <div class="flex-shrink-0">
                         <img src="<?php echo escapeHtml($business['image_url'] ?: 'fbla-waves.png'); ?>" 
-                             alt="<?php echo escapeHtml($business['name']); ?>" 
+                             alt="<?php echo $business['name'];  ?>" 
                              class="w-24 h-24 rounded-xl object-cover border-2 border-border">
                     </div>
                     
@@ -253,15 +286,15 @@
                 <div class="lg:col-span-2 space-y-8">
                     <!-- Description -->
                     <?php if ($business['description']): ?>
-                    <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="bg-card/40 backdrop-blur-sm rounded-xl p-6">
                         <h2 class="text-xl font-semibold text-foreground mb-4">About</h2>
-                        <p class="text-foreground leading-relaxed"><?php echo nl2br(escapeHtml($business['description'])); ?></p>
+                        <p class="text-foreground leading-relaxed"><?php echo $business['description']; ?></p>
                     </div>
                     <?php endif; ?>
 
                     <!-- Active Deals -->
                     <?php if (!empty($deals)): ?>
-                    <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="bg-card/40 backdrop-blur-sm rounded-xl p-6">
                         <h2 class="text-xl font-semibold text-foreground mb-6">Current Deals</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <?php foreach ($deals as $deal): ?>
@@ -289,7 +322,7 @@
                     <?php endif; ?>
 
                     <!-- Reviews -->
-                    <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="bg-card/40 backdrop-blur-sm rounded-xl p-6">
                         
                         <div class="flex items-center justify-between mb-6">
                             <h2 class="text-xl font-semibold text-foreground">Reviews (<?php echo count($reviews); ?>)</h2>
@@ -299,9 +332,9 @@
                                     Write Review
                                 </button>
                                 <?php endif; ?>
-                                <select id="reviewSort" onchange="onSortChange()" class="px-2 py-1 border border-border rounded-lg bg-card text-foreground">
-                                    <option value="newest" <?php echo $sort==='newest'?'selected':''; ?>>Newest</option>
-                                    <option value="highest" <?php echo $sort==='highest'?'selected':''; ?>>Highest</option>
+                                <select id="reviewSort" onchange="onSortChange()" class="px-2 py-1 rounded-lg bg-card text-foreground"> 
+                                    <option value="newest" <?php echo $sort==='newest'?'selected':''; ?>>Newest</option> 
+                                    <option value="highest" <?php echo $sort==='highest'?'selected':''; ?>>Highest</option> 
                                 </select>
                             </div>
                         </div>
@@ -309,23 +342,25 @@
                         <?php if (!empty($reviews)): ?>
                         <div class="space-y-6">
                             <?php foreach ($reviews as $review): ?>
-                            <div class="border-b border-border pb-6 last:border-b-0 last:pb-0">
+                            <div class="pb-6 last:border-b-0 last:pb-0">
                                 <div class="flex items-start space-x-4">
                                     <div class="flex-shrink-0">
                                         <?php if ($review['profile_image_url']): ?>
                                         <img src="<?php echo escapeHtml($review['profile_image_url']); ?>" 
                                              alt="Profile" class="w-10 h-10 rounded-full object-cover">
                                         <?php else: ?>
-                                        <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                                            <i data-lucide="user" class="w-5 h-5 text-muted-foreground"></i>
+                                        <div class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                                            <i data-lucide="user" class="w-5 h-5 text-primary"></i>
                                         </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="flex-1">
                                         <div class="flex items-center justify-between mb-2">
-                                            <h4 class="font-medium text-foreground">
-                                                <?php echo escapeHtml($review['first_name'] . ' ' . $review['last_name']); ?>
-                                            </h4>
+                                            <a href="https://mainstreet.lt/profile?u=<?php echo escapeHtml($review['username']); ?>">
+                                                <h4 class="font-medium text-foreground">
+                                                    <?php echo escapeHtml($review['first_name'] . ' ' . $review['last_name']); ?>
+                                                </h4>
+                                            </a>
                                             <span class="text-sm text-muted-foreground"><?php echo timeAgo($review['created_at']); ?></span>
                                         </div>
                                         <div class="review-rating">
@@ -388,7 +423,7 @@
                 <!-- Sidebar -->
                 <div class="lg:col-span-1 space-y-6">
                     <!-- Contact Information -->
-                    <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="bg-card/40 backdrop-blur-sm rounded-xl p-6">
                         <h3 class="text-lg font-semibold text-foreground mb-4">Contact Information</h3>
                         <div class="space-y-3">
                             <div class="flex items-start space-x-3">
@@ -424,16 +459,30 @@
 
                     <!-- Business Hours -->
                     <?php if ($business['opening_hours']): ?>
-                    <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="bg-card/40 backdrop-blur-sm rounded-xl p-6">
                         <h3 class="text-lg font-semibold text-foreground mb-4">Business Hours</h3>
                         <div class="space-y-2">
-                            <?php foreach (getBusinessHours($business['opening_hours']) as $dayHours): ?>
-                            <div class="flex justify-between items-center py-1">
-                                <span class="font-medium text-foreground"><?php echo $dayHours['day']; ?>:</span>
-                                <span class="text-muted-foreground <?php echo $dayHours['hours'] === 'Closed' ? 'text-red-400' : ''; ?>">
-                                    <?php echo $dayHours['hours']; ?>
-                                </span>
-                            </div>
+                            <?php 
+                            $hoursData = json_decode($business['opening_hours'], true);
+                            $currentDay = date('l'); 
+                    
+                            foreach ($hoursData as $day => $info): 
+                                $open = $info['open'] ?? null;
+                                $close = $info['close'] ?? null;
+                                $shutdown = $info['shutdown'] ?? false;
+                    
+                                $isToday = ($day === $currentDay);
+                            ?>
+                                <div class="flex justify-between items-center py-1 <?php echo $isToday ? 'font-bold text-primary' : ''; ?>">
+                                    <span class="text-foreground"><?php echo htmlspecialchars($day); ?>:</span>
+                                    <?php if ($shutdown): ?>
+                                        <span class="text-red-400">Closed</span>
+                                    <?php else: ?>
+                                        <span class="text-muted-foreground">
+                                            <?php echo htmlspecialchars("$open – $close"); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -446,7 +495,7 @@
 
 <!-- Review Modal -->
 <div id="reviewModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-lg flex items-center justify-center z-50" style="display: none;">
-    <div class="bg-card rounded-xl border border-border p-6 w-full max-w-md mx-4">
+    <div class="bg-card/40 backdrop-blur-sm rounded-xl p-6 w-full max-w-md mx-4">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-semibold text-foreground">Write a Review</h3>
             <button onclick="closeReviewModal()" class="text-muted-foreground hover:text-foreground">
@@ -551,383 +600,7 @@
 </div>
     
 <script>
-    lucide.createIcons();
-    
-    function toggleBookmark(businessId) {
-        // AJAX call to toggle bookmark
-        fetch('/api/bookmarks.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                business_id: businessId,
-                action: 'toggle'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-    
-    async function deleteReview(reviewId) {
-        const confirmed = await showConfirm("Are you sure you want to delete this review?");
-        if (confirmed) {
-            fetch('/api/reviews.php', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ review_id: reviewId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage("Review deleted successfully!", "success");
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showMessage(data.message || "Failed to delete review", "error");
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                showMessage("An error occurred while deleting.", "error");
-            });
-        }
-    }
-    
-    function showMessage(message, type = 'info') {
-        const modal = document.getElementById('message-modal');
-        const textEl = document.getElementById('message-text');
-        const iconEl = document.getElementById('message-icon');
-        const closeBtn = document.getElementById('message-close');
-    
-        // Set the text
-        textEl.textContent = message;
-    
-        // Clear previous icon
-        iconEl.innerHTML = '';
-    
-        // Determine icon based on type
-        let iconName = '';
-        let iconColor = '';
-        switch (type) {
-            case 'success':
-                iconName = 'check-circle';
-                iconColor = 'text-green-500';
-                break;
-            case 'error':
-                iconName = 'alert-circle';
-                iconColor = 'text-red-500';
-                break;
-            case 'warning':
-                iconName = 'alert-triangle';
-                iconColor = 'text-yellow-500';
-                break;
-            default:
-                iconName = 'info';
-                iconColor = 'text-blue-500';
-        }
-    
-        // Create icon element
-        const icon = document.createElement('i');
-        icon.setAttribute('data-lucide', iconName);
-        icon.className = `w-10 h-10 ${iconColor} mb-2`;
-        iconEl.appendChild(icon);
-    
-        // Show modal
-        modal.classList.remove('hidden');
-    
-        // Refresh Lucide icons
-        lucide.createIcons();
-    
-        // Close modal on button click
-        closeBtn.onclick = () => {
-            modal.classList.add('hidden');
-        };
-    
-        // Optional: Close modal when clicking outside the modal box
-        modal.onclick = (e) => {
-            if (e.target === modal) modal.classList.add('hidden');
-        };
-    }
-    
-    function showConfirm(message) {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('confirm-modal');
-            const textEl = document.getElementById('confirm-text');
-            const yesBtn = document.getElementById('confirm-yes');
-            const noBtn = document.getElementById('confirm-no');
-    
-            textEl.textContent = message;
-            modal.classList.remove('hidden');
-    
-            const cleanup = () => {
-                modal.classList.add('hidden');
-                yesBtn.onclick = null;
-                noBtn.onclick = null;
-            };
-    
-            yesBtn.onclick = () => {
-                cleanup();
-                resolve(true);
-            };
-    
-            noBtn.onclick = () => {
-                cleanup();
-                resolve(false);
-            };
-    
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    cleanup();
-                    resolve(false);
-                }
-            };
-        });
-    }
-    
-    function showReviewModal() {
-        const modal = document.getElementById('reviewModal');
-        modal.style.display = 'flex';
-        document.getElementById('ratingInput').value = '';
-        document.getElementById('comment').value = '';
-    
-        // Clear reviewIdInput if exists
-        const reviewIdInput = document.getElementById('reviewIdInput');
-        if (reviewIdInput) reviewIdInput.value = '';
-    
-        const starButtons = document.querySelectorAll('.star-button');
-        starButtons.forEach(button => {
-            button.classList.add('text-gray-300');
-            button.classList.remove('text-yellow-400');
-        });
-    
-        // Only block new reviews if user already has one
-        if (currentUserId) {
-            const alreadyReviewed = existingReviews.some(r => parseInt(r.user_id) === currentUserId);
-            if (alreadyReviewed) {
-                closeReviewModal();
-                showMessage("Already reviewed this business!", "error");
-                return false;
-            }
-        }
-    }
-    
-    function openReviewModal(reviewId, rating, comment) {
-        const modal = document.getElementById('reviewModal');
-        modal.style.display = 'flex';
-    
-        // Prefill fields
-        document.getElementById('methodInput').value = reviewId ? 'PUT' : 'POST';
-        document.getElementById('ratingInput').value = rating;
-        document.getElementById('comment').value = comment;
-        setRating(rating);
-    
-        // Hidden field for review ID
-        let reviewIdInput = document.getElementById('reviewIdInput');
-        if (!reviewIdInput) {
-            reviewIdInput = document.createElement('input');
-            reviewIdInput.type = 'hidden';
-            reviewIdInput.name = 'review_id';
-            reviewIdInput.id = 'reviewIdInput';
-            modal.querySelector('form').appendChild(reviewIdInput);
-        }
-        reviewIdInput.value = reviewId;
-    
-        modal.querySelector('h3').textContent = 'Edit Review';
-        modal.querySelector('form button[type="submit"]').textContent = 'Update Review';
-    }
-
-
-    function closeReviewModal() {
-        document.getElementById('reviewModal').style.display = 'none';
-    }
-    
-    function setRating(stars) {
-        const starButtons = document.querySelectorAll('.star-button');
-        const ratingInput = document.getElementById('ratingInput');
-        
-        ratingInput.value = stars;
-        
-        starButtons.forEach(button => {
-            const rating = parseInt(button.getAttribute('data-rating'));
-            if (rating <= stars) {
-                button.classList.add('text-yellow-400');
-                button.classList.remove('text-gray-300');
-            } else {
-                button.classList.add('text-gray-300');
-                button.classList.remove('text-yellow-400');
-            }
-        });
-        
-        console.log('Rating set to:', stars);
-    }
-    
-    function validateReviewForm() {
-        const rating = document.getElementById('ratingInput').value;
-        const comment = document.getElementById('comment').value.trim();
-        const reviewIdInput = document.getElementById('reviewIdInput');
-        const editingId = reviewIdInput ? reviewIdInput.value : null;
-    
-        if (!rating || rating < 1 || rating > 5) {
-            showMessage('Please select a rating from 1 to 5 stars.', "error");
-            return false;
-        }
-    
-        if (currentUserId) {
-            const alreadyReviewed = existingReviews.some(r => parseInt(r.user_id) === currentUserId && r.id !== editingId);
-            if (alreadyReviewed) {
-                showMessage("Already reviewed this business!", "error");
-                return false;
-            }
-        }
-    
-        return true;
-    }
-
-    function showDealCode(dealId, promoCode) {
-        document.getElementById('promoCode').textContent = promoCode;
-        document.getElementById('dealModal').style.display = 'flex';
-    }
-    
-    function closeDealModal() {
-        document.getElementById('dealModal').style.display = 'none';
-    }
-    
-    function copyPromoCode() {
-        const promoCode = document.getElementById('promoCode').textContent;
-        navigator.clipboard.writeText(promoCode).then(function() {
-            // Show success feedback
-            const button = event.target;
-            const originalText = button.textContent;
-            button.textContent = 'Copied!';
-            button.classList.add('bg-green-100', 'text-green-800');
-            
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.classList.remove('bg-green-100', 'text-green-800');
-            }, 2000);
-        });
-    }
-    
-    function trackWebsiteClick(businessId, websiteUrl) {
-        fetch('/api/track_event.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                event_type: 'website_click',
-                business_id: businessId
-            })
-        }).then(() => {
-            // Redirect after logging event (slight delay to ensure DB writes)
-            setTimeout(() => {
-                window.open(websiteUrl, '_blank');
-            }, 100);
-        }).catch((err) => {
-            console.error('Tracking error:', err);
-            window.open(websiteUrl, '_blank'); // Fallback
-        });
-    }
-    
-    function onSortChange() {
-        const sel = document.getElementById('reviewSort');
-        const val = sel.value;
-        const params = new URLSearchParams(window.location.search);
-        params.set('sort', val);
-        window.location.search = params.toString();
-    }
-    
-    function voteReview(reviewId, voteValue, btnElem) {
-        fetch('/api/review_vote.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                review_id: reviewId,
-                vote: voteValue
-            })
-        })
-        .then(resp => resp.json())
-        .then(data => {
-            if (data.success) {
-                const span = document.getElementById('review-upvotes-' + reviewId);
-                span.textContent = data.upvotes;
-                // Optional: highlight the button or change color to reflect user has voted
-            } else {
-                alert(data.message || 'Could not vote');
-            }
-        })
-        .catch(err => {
-            console.error('Vote error:', err);
-            alert('Could not vote, try again');
-        });
-    }
-    
-    document.querySelectorAll('#edit-review-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const reviewId = btn.dataset.id;
-            const rating   = btn.dataset.rating;
-            const comment  = btn.dataset.comment;
-    
-            // Open the modal
-            openReviewModal();
-    
-            // Prefill fields
-            document.querySelector('#review-id').value = reviewId;
-            document.querySelector('#rating-input').value = rating;
-            document.querySelector('#comment-input').value = comment;
-    
-            // Switch form mode to "edit"
-            document.querySelector('#review-form').dataset.mode = 'edit';
-        });
-    });
-    
-    document.addEventListener("DOMContentLoaded", () => {
-        const reviewForm = document.getElementById("review-form");
-        if (!reviewForm) return;
-    
-        reviewForm.addEventListener("submit", async (e) => {
-            e.preventDefault(); // stop normal redirect to /api/reviews.php
-    
-            const formData = new FormData(reviewForm);
-            const data = Object.fromEntries(formData.entries());
-    
-            try {
-                const response = await fetch("/api/reviews.php", {
-                    method: "POST", // your API will check _method for PUT/POST
-                    body: formData,
-                });
-                const result = await response.json();
-    
-                if (result.success) {
-                    closeReviewModal();
-                    showMessage("Review saved successfully!", "success");
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showMessage(result.message || "Failed to save review", "error");
-                }
-            } catch (err) {
-                console.error(err);
-                if(err instanceof SyntaxError) {
-                    closeReviewModal();
-                    showMessage("Review processed.", "success");
-                    setTimeout(() => location.reload(), 1000);
-                }
-                else {
-                    showMessage("An error occurred while saving review.", "error");
-                }
-            }
-        });
-    });
-
+ function toggleBookmark(e){fetch("/api/bookmarks.php",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({business_id:e,action:"toggle"})}).then(e=>e.json()).then(e=>{e.success&&location.reload()}).catch(e=>{console.error("Error:",e)})}async function deleteReview(e){let t=await showConfirm("Are you sure you want to delete this review?");t&&fetch("/api/reviews.php",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({review_id:e})}).then(e=>e.json()).then(e=>{e.success?(showMessage("Review deleted successfully!","success"),setTimeout(()=>location.reload(),1e3)):showMessage(e.message||"Failed to delete review","error")}).catch(e=>{console.error(e),showMessage("An error occurred while deleting.","error")})}function showMessage(e,t="info"){let n=document.getElementById("message-modal"),o=document.getElementById("message-text"),s=document.getElementById("message-icon"),r=document.getElementById("message-close");o.textContent=e,s.innerHTML="";let l="",i="";switch(t){case"success":l="check-circle",i="text-green-500";break;case"error":l="alert-circle",i="text-red-500";break;case"warning":l="alert-triangle",i="text-yellow-500";break;default:l="info",i="text-blue-500"}let a=document.createElement("i");a.setAttribute("data-lucide",l),a.className=`w-10 h-10 ${i} mb-2`,s.appendChild(a),n.classList.remove("hidden"),lucide.createIcons(),r.onclick=()=>{n.classList.add("hidden")},n.onclick=e=>{e.target===n&&n.classList.add("hidden")}}function showConfirm(e){return new Promise(t=>{let n=document.getElementById("confirm-modal"),o=document.getElementById("confirm-text"),s=document.getElementById("confirm-yes"),r=document.getElementById("confirm-no");o.textContent=e,n.classList.remove("hidden");let l=()=>{n.classList.add("hidden"),s.onclick=null,r.onclick=null};s.onclick=()=>{l(),t(!0)},r.onclick=()=>{l(),t(!1)},n.onclick=e=>{e.target===n&&(l(),t(!1))}})}function showReviewModal(){let e=document.getElementById("reviewModal");e.style.display="flex",document.getElementById("ratingInput").value="",document.getElementById("comment").value="";let t=document.getElementById("reviewIdInput");t&&(t.value="");let n=document.querySelectorAll(".star-button");if(n.forEach(e=>{e.classList.add("text-gray-300"),e.classList.remove("text-yellow-400")}),currentUserId){let o=existingReviews.some(e=>parseInt(e.user_id)===currentUserId);if(o)return closeReviewModal(),showMessage("Already reviewed this business!","error"),!1}}function openReviewModal(e,t,n){let o=document.getElementById("reviewModal");o.style.display="flex",document.getElementById("methodInput").value=e?"PUT":"POST",document.getElementById("ratingInput").value=t,document.getElementById("comment").value=n,setRating(t);let s=document.getElementById("reviewIdInput");s||((s=document.createElement("input")).type="hidden",s.name="review_id",s.id="reviewIdInput",o.querySelector("form").appendChild(s)),s.value=e,o.querySelector("h3").textContent="Edit Review",o.querySelector('form button[type="submit"]').textContent="Update Review"}function closeReviewModal(){document.getElementById("reviewModal").style.display="none"}function setRating(e){let t=document.querySelectorAll(".star-button"),n=document.getElementById("ratingInput");n.value=e,t.forEach(t=>{let n=parseInt(t.getAttribute("data-rating"));n<=e?(t.classList.add("text-yellow-400"),t.classList.remove("text-gray-300")):(t.classList.add("text-gray-300"),t.classList.remove("text-yellow-400"))}),console.log("Rating set to:",e)}function validateReviewForm(){let e=document.getElementById("ratingInput").value;document.getElementById("comment").value.trim();let t=document.getElementById("reviewIdInput"),n=t?t.value:null;if(!e||e<1||e>5)return showMessage("Please select a rating from 1 to 5 stars.","error"),!1;if(currentUserId){let o=existingReviews.some(e=>parseInt(e.user_id)===currentUserId&&e.id!==n);if(o)return showMessage("Already reviewed this business!","error"),!1}return!0}function showDealCode(e,t){document.getElementById("promoCode").textContent=t,document.getElementById("dealModal").style.display="flex"}function closeDealModal(){document.getElementById("dealModal").style.display="none"}function copyPromoCode(){let e=document.getElementById("promoCode").textContent;navigator.clipboard.writeText(e).then(function(){let e=event.target,t=e.textContent;e.textContent="Copied!",e.classList.add("bg-green-100","text-green-800"),setTimeout(()=>{e.textContent=t,e.classList.remove("bg-green-100","text-green-800")},2e3)})}function trackWebsiteClick(e,t){fetch("/api/track_event.php",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event_type:"website_click",business_id:e})}).then(()=>{setTimeout(()=>{window.open(t,"_blank")},100)}).catch(e=>{console.error("Tracking error:",e),window.open(t,"_blank")})}function onSortChange(){let e=document.getElementById("reviewSort"),t=e.value,n=new URLSearchParams(window.location.search);n.set("sort",t),window.location.search=n.toString()}function voteReview(e,t,n){fetch("/api/review_vote.php",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({review_id:e,vote:t})}).then(e=>e.json()).then(t=>{if(t.success){let n=document.getElementById("review-upvotes-"+e);n.textContent=t.upvotes}else alert(t.message||"Could not vote")}).catch(e=>{console.error("Vote error:",e),alert("Could not vote, try again")})}lucide.createIcons(),document.querySelectorAll("#edit-review-btn").forEach(e=>{e.addEventListener("click",()=>{let t=e.dataset.id,n=e.dataset.rating,o=e.dataset.comment;openReviewModal(),document.querySelector("#review-id").value=t,document.querySelector("#rating-input").value=n,document.querySelector("#comment-input").value=o,document.querySelector("#review-form").dataset.mode="edit"})}),document.addEventListener("DOMContentLoaded",()=>{let e=document.getElementById("review-form");e&&e.addEventListener("submit",async t=>{t.preventDefault();let n=new FormData(e);Object.fromEntries(n.entries());try{let o=await fetch("/api/reviews.php",{method:"POST",body:n}),s=await o.json();s.success?(closeReviewModal(),showMessage("Review saved successfully!","success"),setTimeout(()=>location.reload(),1e3)):showMessage(s.message||"Failed to save review","error")}catch(r){console.error(r),r instanceof SyntaxError?(closeReviewModal(),showMessage("Review processed.","success"),setTimeout(()=>location.reload(),1e3)):showMessage("An error occurred while saving review.","error")}})});
 </script>
 
 <?php include 'includes/footer.php'; ?>

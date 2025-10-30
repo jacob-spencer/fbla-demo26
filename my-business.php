@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formType = $_POST['form_type'] ?? '';
 
     if ($formType === 'business') {
-        $name = sanitizeInput($_POST['name']);
+        $name = ($_POST['name']);
         $description = sanitizeInput($_POST['description']);
         $categoryId = sanitizeInput($_POST['category_id']);
         // $address = sanitizeInput($_POST['address']);
@@ -181,7 +181,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($daysMap as $prefix => $day) {
             $open  = sanitizeInput($_POST["{$prefix}-opening"]) ?: null;
             $close = sanitizeInput($_POST["{$prefix}-closing"]) ?: null;
-            $hours[$day] = ['open' => $open, 'close' => $close];
+            $shutdown = isset($_POST["{$prefix}-closed-checker"]);
+
+            $hours[$day] = ['open' => $open, 'close' => $close, 'shutdown' => $shutdown];
         }
     
         try {
@@ -228,17 +230,45 @@ $pageDescription = 'Manage your business profile and information';
 include 'includes/header.php';
 ?>
 
-<!-- yucky style tags -->
+<!-- yucky style -->
 <style>
-.tab {
-  display: none; 
-}
-.active {
-  display: block;
-}
+    .tab {
+      display: none; 
+    }
+    .active {
+      display: block;
+    }
 </style>
 
-<main class="min-h-screen bg-background">
+<script>
+    function showMessage(e,t="info"){let a=document.getElementById("message-modal"),l=document.getElementById("message-text"),n=document.getElementById("message-icon"),s=document.getElementById("message-close");l.innerHTML=e,n.innerHTML="";let c="",i="";switch(t){case"success":c="check-circle",i="text-green-500";break;case"error":c="alert-circle",i="text-red-500";break;case"warning":c="alert-triangle",i="text-yellow-500";break;default:c="info",i="text-blue-500"}let d=document.createElement("i");d.setAttribute("data-lucide",c),d.className=`w-10 h-10 ${i} mb-2`,n.appendChild(d),a.classList.remove("hidden"),lucide.createIcons(),s.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}document.addEventListener("DOMContentLoaded",function(e){console.log("DOM fully loaded, getting lat/long"),console.log("Prompting user location"),fillLatLong()});
+</script>
+
+<main class="min-h-screen bg-background py-20">
+    <div id="message-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
+        <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
+            <button id="message-close" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xl font-bold">
+                &times; <!-- <<< this is dumb -->
+            </button>
+            <div id="message-icon" class="mb-4 flex justify-center"></div>
+            <p id="message-text" class="text-foreground text-sm"></p>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
+        <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
+            <p id="confirm-text" class="text-foreground text-sm mb-6"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-no" class="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+                    No
+                </button>
+                <button id="confirm-yes" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg">
+                    Yes
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-foreground mb-2">My Business</h1>
@@ -263,7 +293,6 @@ include 'includes/header.php';
         </div>
         <?php endif; ?>
 
-        <?php if ($business): ?>
         <!-- Toolbar -->
         <div class="bg-card rounded-xl border border-border p-6 mb-8">
             <div class="flex items-center justify-between">
@@ -296,19 +325,20 @@ include 'includes/header.php';
                 </div>
             </div>
         </div>
-        <!-- Business Preview -->
         
+        <?php if ($business): ?>
+        <!-- Business Preview -->
         <div id="overview" class="tab">
             <div class="bg-card rounded-xl border border-border p-6 mb-8">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-semibold text-foreground">Business Preview</h2>
                     <div>
-                        <a href="/analytics.php?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
+                        <a href="/analytics?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
                            class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
                             <i data-lucide="external-link" class="w-4 h-4 mr-2 inline"></i>
                             View Analytics
                         </a>
-                        <a href="/business.php?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
+                        <a href="/business?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
                            class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
                             <i data-lucide="external-link" class="w-4 h-4 mr-2 inline"></i>
                             View Public Page
@@ -339,7 +369,11 @@ include 'includes/header.php';
                 </div>
             </div>
         </div>
-        
+        <?php else: ?>
+        <script>
+            showMessage("No business found. <br>Try creating one in the <strong>'Business Settings'</strong> menu.", "warning");
+            openTab('business-setting');
+        </script>
         <?php endif; ?>
 
         <div id="business-setting" class="tab">
@@ -351,7 +385,7 @@ include 'includes/header.php';
                 
                 <form method="POST" enctype="multipart/form-data" class="space-y-6">
                     <input type="hidden" name="form_type" value="business">
-    
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="name" class="block text-sm font-medium text-foreground mb-2">Business Name *</label>
@@ -418,14 +452,14 @@ include 'includes/header.php';
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5" style="display: none;">
                         <div>
                             <label for="lat" class="block text-sm font-medium text-foreground mb-2">Latitude *</label>
-                            <input type="text" id="lat" name="lat" required
-                                   value="<?php echo escapeHtml($business['latitude'] ?? $_POST['lat'] ?? ''); ?>"
+                            <input type="text" id="lat" name="lat"
+                                   value="<?php echo escapeHtml($business['latitude'] ?? $_POST['lat'] ?? '0'); ?>"
                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
                             <label for="long" class="block text-sm font-medium text-foreground mb-2">Longitude *</label>
-                            <input type="text" id="long" name="long" required
-                                   value="<?php echo escapeHtml($business['longitude'] ?? $_POST['long'] ?? ''); ?>"
+                            <input type="text" id="long" name="long"
+                                   value="<?php echo escapeHtml($business['longitude'] ?? $_POST['long'] ?? '0'); ?>"
                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                     </div>
@@ -519,6 +553,7 @@ include 'includes/header.php';
             </div>
         </div>
         
+        <?php if($business): ?>
         <div id="deals" class="tab">
             <!-- Deal Form -->
             <div class="bg-card rounded-xl border border-border p-6">
@@ -611,7 +646,7 @@ include 'includes/header.php';
                                         </p>
                                     </div>
                                     <div class="space-x-2">
-                                        <a href="/edit_deal.php?id=<?php echo urlencode($deal['id']); ?>"
+                                        <a href="/edit_deal?id=<?php echo urlencode($deal['id']); ?>"
                                            class="px-6 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg">Edit</a>
                                         <a href="?delete_deal=<?php echo urlencode($deal['id']); ?>"
                                            onclick="event.preventDefault(); handleDeleteDeal(this.href);"
@@ -627,16 +662,31 @@ include 'includes/header.php';
             </div>
             
         </div>
+        <?php else: ?>
+        <script>
+            showMessage("No business found. <br>You need to create one before setting deals.", "warning");
+            openTab('business-setting');
+        </script>
+        <?php endif; ?>
         
+        <?php if($business): ?>
         <div id="reviews" class="tab">
-            <!-- Deal Form -->
+            <!-- Review Form -->
             <div class="bg-card rounded-xl border border-border p-6">
                 <h2 class="text-xl font-semibold text-foreground mb-6">
                     <?php echo $business ? 'Reviews' : 'Reviews'; ?>
                 </h2>
-
+                
+                <p class="text-foreground mb-2"> Feature not implemented!</p>
+    
             </div>
         </div>
+        <?php else: ?>
+        <script>
+            showMessage("No business found. <br>You need to create one before viewing reviews.", "warning");
+            openTab('business-setting');
+        </script>
+        <?php endif; ?>
         
         <div id="hours" class="tab">
             <!-- Hours Form -->
@@ -660,7 +710,16 @@ include 'includes/header.php';
                         foreach ($days as $day => $prefix): ?>
                         <div class="flex flex-col space-y-2">
                             <div class="flex items-center justify-between">
-                                <label class="block text-sm font-medium text-foreground"><?php echo $day; ?> *</label>
+                                <label class="block text-sm font-medium text-foreground"><?php echo $day; ?> * 
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="<?php echo $prefix; ?>-closed-checker" name="<?php echo $prefix; ?>-closed-checker"
+                                          class="appearance-none h-5 w-5 border-2 border-border rounded-md checked:bg-primary checked:border-primary
+                                                 transition duration-200 relative cursor-pointer
+                                                 checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-sm checked:before:inset-0 checked:before:flex checked:before:items-center checked:before:justify-center" />
+                                        <span class="text-foreground">Closed</span>
+                                    </label>
+                                
+                                </label>
                                 <button type="button" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2" onclick="setAllHours('<?php echo $prefix; ?>')">&raquo;</button>
                             </div>
                             <div class="flex space-x-2">
@@ -690,15 +749,7 @@ include 'includes/header.php';
                     </div>
                     
                     <script>
-                    function setAllHours(prefix) {
-                        const openVal = document.getElementById(prefix + '-opening').value;
-                        const closeVal = document.getElementById(prefix + '-closing').value;
-                        const dayIds = ['m','tu','w','th','f','sa','su'];
-                        dayIds.forEach(d => {
-                            document.getElementById(d + '-opening').value = openVal;
-                            document.getElementById(d + '-closing').value = closeVal;
-                        });
-                    }
+                        function setAllHours(e){let l=document.getElementById(e+"-opening").value,t=document.getElementById(e+"-closing").value;["m","tu","w","th","f","sa","su"].forEach(e=>{document.getElementById(e+"-opening").value=l,document.getElementById(e+"-closing").value=t})}
                     </script>
 
                 </form>
@@ -706,263 +757,10 @@ include 'includes/header.php';
         </div>
         
     </div>    
-    
-    <!-- Modals -->
-    
-    <div id="message-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
-        <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
-            <button id="message-close" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xl font-bold">
-                &times;
-            </button>
-            <div id="message-icon" class="mb-4 flex justify-center"></div>
-            <p id="message-text" class="text-foreground text-sm"></p>
-        </div>
-    </div>
-
-    <div id="confirm-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
-        <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
-            <p id="confirm-text" class="text-foreground text-sm mb-6"></p>
-            <div class="flex justify-center space-x-4">
-                <button id="confirm-no" class="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                    No
-                </button>
-                <button id="confirm-yes" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg">
-                    Yes
-                </button>
-            </div>
-        </div>
-    </div>
-
 </main>
 
 <script>
-    openTab('overview');
-    
-    lucide.createIcons(); // for context this has to run for every section with Lucide icons
-                          // it's run in triplicate on most pages (header, body, footer)
-                          // the performance hit is massive
-                          // you know what else is still massive?
-                          // THE LOW TAPER FADE MEME
-    
-    // To make different "tabs" visible
-    function openTab(tabId) {
-      const tabs = document.querySelectorAll('.tab');
-      tabs.forEach(tab => tab.classList.remove('active'));
-        
-      const activeTab = document.getElementById(tabId);
-      if (activeTab) {
-        activeTab.classList.add('active');
-      }
-    }
-    
-    function showMessage(message, type = 'info') {
-        const modal = document.getElementById('message-modal');
-        const textEl = document.getElementById('message-text');
-        const iconEl = document.getElementById('message-icon');
-        const closeBtn = document.getElementById('message-close');
-    
-        // Set the text
-        textEl.textContent = message;
-    
-        // Clear previous icon
-        iconEl.innerHTML = '';
-    
-        // Determine icon based on type
-        let iconName = '';
-        let iconColor = '';
-        switch (type) {
-            case 'success':
-                iconName = 'check-circle';
-                iconColor = 'text-green-500';
-                break;
-            case 'error':
-                iconName = 'alert-circle';
-                iconColor = 'text-red-500';
-                break;
-            case 'warning':
-                iconName = 'alert-triangle';
-                iconColor = 'text-yellow-500';
-                break;
-            default:
-                iconName = 'info';
-                iconColor = 'text-blue-500';
-        }
-    
-        // Create icon element
-        const icon = document.createElement('i');
-        icon.setAttribute('data-lucide', iconName);
-        icon.className = `w-10 h-10 ${iconColor} mb-2`;
-        iconEl.appendChild(icon);
-    
-        // Show modal
-        modal.classList.remove('hidden');
-    
-        // Refresh Lucide icons
-        lucide.createIcons();
-    
-        // Close modal on button click
-        closeBtn.onclick = () => {
-            modal.classList.add('hidden');
-        };
-    
-        // Optional: Close modal when clicking outside the modal box
-        modal.onclick = (e) => {
-            if (e.target === modal) modal.classList.add('hidden');
-        };
-    }
-    
-    function showConfirm(message) {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('confirm-modal');
-            const textEl = document.getElementById('confirm-text');
-            const yesBtn = document.getElementById('confirm-yes');
-            const noBtn = document.getElementById('confirm-no');
-    
-            textEl.textContent = message;
-            modal.classList.remove('hidden');
-    
-            const cleanup = () => {
-                modal.classList.add('hidden');
-                yesBtn.onclick = null;
-                noBtn.onclick = null;
-            };
-    
-            yesBtn.onclick = () => {
-                cleanup();
-                resolve(true);
-            };
-    
-            noBtn.onclick = () => {
-                cleanup();
-                resolve(false);
-            };
-    
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    cleanup();
-                    resolve(false);
-                }
-            };
-        });
-    }
-    
-    async function handleDeleteDeal(url) {
-        const confirmed = await showConfirm("Are you sure you want to delete this deal?");
-        if (confirmed) {
-            window.location.href = url;
-        }
-    }
-
-    function setupDragDrop(inputId, labelId, previewId, dropzoneId) {
-        const input = document.getElementById(inputId);
-        const label = document.getElementById(labelId);
-        const preview = document.getElementById(previewId);
-        const dropzone = document.getElementById(dropzoneId);
-    
-        dropzone.addEventListener('click', () => input.click());
-    
-        ['dragenter', 'dragover'].forEach(event => {
-            dropzone.addEventListener(event, (e) => {
-                e.preventDefault();
-                dropzone.classList.add('border-primary', 'bg-muted/20');
-            });
-        });
-    
-        ['dragleave', 'drop'].forEach(event => {
-            dropzone.addEventListener(event, (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-primary', 'bg-muted/20');
-            });
-        });
-        
-        dropzone.addEventListener('drop', (e) => {
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                input.files = e.dataTransfer.files;
-                label.textContent = file.name;
-    
-                if (preview) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        preview.src = ev.target.result;
-                        preview.classList.remove('hidden');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-        });
-        
-        input.addEventListener('change', () => {
-            const file = input.files[0];
-            if (file) {
-                label.textContent = file.name;
-    
-                if (preview) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        preview.src = ev.target.result;
-                        preview.classList.remove('hidden');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            } else {
-                label.textContent = 'Drag & drop an image here, or click to browse';
-                if (preview) preview.classList.add('hidden');
-            }
-        });
-    }
-    
-    setupDragDrop('thumbnail', 'thumbnail-label', 'thumbnail-preview', 'thumbnail-dropzone');
-    setupDragDrop('banner', 'banner-label', 'banner-preview', 'banner-dropzone');
-    
-    async function fillLocation() {
-        if (!navigator.geolocation) {
-            showMessage("Geolocation is not supported by your browser.", "error");
-            return;
-        }
-    
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const lat = position.coords.latitude;
-                const long = position.coords.longitude;
-    
-                document.getElementById('lat').value = lat.toFixed(6);
-                document.getElementById('long').value = long.toFixed(6);
-    
-                try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${long}&addressdetails=1`);
-                    if (!response.ok) throw new Error("Failed to fetch address");
-    
-                    const data = await response.json();
-                    const a = data.address;
-    
-                    const street = [a.house_number, a.road].filter(Boolean).join(' ');
-                    const city = a.city || a.town || a.village || '';
-                    const state = a.state || '';
-                    const zip = a.postcode || '';
-                    const country = a.country || '';
-    
-                    document.getElementById('street').value = street;
-                    document.getElementById('city').value = city;
-                    document.getElementById('state').value = state;
-                    document.getElementById('zip').value = zip;
-                    document.getElementById('country').value = country;
-    
-                } catch (error) {
-                    console.error(error);
-                    showMessage("Could not get address.", "error");
-                }
-            },
-            (error) => {
-                showMessage("Geolocation failed: " + error.message, "error");
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    }
+function openTab(e){let t=document.querySelectorAll(".tab");t.forEach(e=>e.classList.remove("active"));let a=document.getElementById(e);a&&a.classList.add("active")}function showMessage(e,t="info"){let a=document.getElementById("message-modal"),n=document.getElementById("message-text"),o=document.getElementById("message-icon"),r=document.getElementById("message-close");n.textContent=e,o.innerHTML="";let l="",s="";switch(t){case"success":l="check-circle",s="text-green-500";break;case"error":l="alert-circle",s="text-red-500";break;case"warning":l="alert-triangle",s="text-yellow-500";break;default:l="info",s="text-blue-500"}let i=document.createElement("i");i.setAttribute("data-lucide",l),i.className=`w-10 h-10 ${s} mb-2`,o.appendChild(i),a.classList.remove("hidden"),lucide.createIcons(),r.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}function showConfirm(e){return new Promise(t=>{let a=document.getElementById("confirm-modal"),n=document.getElementById("confirm-text"),o=document.getElementById("confirm-yes"),r=document.getElementById("confirm-no");n.textContent=e,a.classList.remove("hidden");let l=()=>{a.classList.add("hidden"),o.onclick=null,r.onclick=null};o.onclick=()=>{l(),t(!0)},r.onclick=()=>{l(),t(!1)},a.onclick=e=>{e.target===a&&(l(),t(!1))}})}async function handleDeleteDeal(e){let t=await showConfirm("Are you sure you want to delete this deal?");t&&(window.location.href=e)}function setupDragDrop(e,t,a,n){let o=document.getElementById(e),r=document.getElementById(t),l=document.getElementById(a),s=document.getElementById(n);s.addEventListener("click",()=>o.click()),["dragenter","dragover"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.add("border-primary","bg-muted/20")})}),["dragleave","drop"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.remove("border-primary","bg-muted/20")})}),s.addEventListener("drop",e=>{let t=e.dataTransfer.files[0];if(t&&(o.files=e.dataTransfer.files,r.textContent=t.name,l)){let a=new FileReader;a.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},a.readAsDataURL(t)}}),o.addEventListener("change",()=>{let e=o.files[0];if(e){if(r.textContent=e.name,l){let t=new FileReader;t.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},t.readAsDataURL(e)}}else r.textContent="Drag & drop an image here, or click to browse",l&&l.classList.add("hidden")})}function fillLatLong(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6)},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}async function fillLocation(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6);try{let n=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${t}&lon=${a}&addressdetails=1`);if(!n.ok)throw Error("Failed to fetch address");let o=await n.json(),r=o.address,l=[r.house_number,r.road].filter(Boolean).join(" "),s=r.city||r.town||r.village||"",i=r.state||"",d=r.postcode||"",c=r.country||"";document.getElementById("street").value=l,document.getElementById("city").value=s,document.getElementById("state").value=i,document.getElementById("zip").value=d,document.getElementById("country").value=c}catch(g){console.error(g),showMessage("Could not get address.","error")}},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}openTab("overview"),lucide.createIcons(),setupDragDrop("thumbnail","thumbnail-label","thumbnail-preview","thumbnail-dropzone"),setupDragDrop("banner","banner-label","banner-preview","banner-dropzone");
 </script>
 
 <?php include 'includes/footer.php'; ?>

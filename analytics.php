@@ -116,7 +116,7 @@ $pageDescription='View your business analytics';
 include 'includes/header.php';
 ?>
 
-<main class="min-h-screen bg-background">
+<main class="min-h-screen bg-background py-20">
     <div id="geo-loading-overlay" class="fixed inset-0 bg-background/70 backdrop-blur-lg flex items-center justify-center z-50 hidden">
         <div class="bg-card px-6 py-4 rounded-lg shadow-lg text-center border border-border">
             <svg class="animate-spin h-6 w-6 text-primary mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -126,7 +126,51 @@ include 'includes/header.php';
             <p class="text-sm text-foreground">Preparing report...</p>
         </div>
     </div>
-        
+    
+    <div id="report-options-modal" class="fixed inset-0 bg-background/70 backdrop-blur-lg flex items-center justify-center z-50 hidden">
+        <div class="bg-card px-6 py-4 rounded-lg shadow-lg text-center border border-border">
+            <h2 class="text-sm text-foreground mb-3">Report Options</h2>
+    
+            <div class="space-y-2 text-left">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="statistics-table-checkbox" checked
+                      class="appearance-none h-5 w-5 border-2 border-border rounded-md checked:bg-primary checked:border-primary
+                             transition duration-200 relative cursor-pointer
+                             checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-sm checked:before:inset-0 checked:before:flex checked:before:items-center checked:before:justify-center" />
+                    <span class="text-foreground">Statistics Table</span>
+                </label>
+                
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="traffic-chart-checkbox" checked
+                      class="appearance-none h-5 w-5 border-2 border-border rounded-md checked:bg-primary checked:border-primary
+                             transition duration-200 relative cursor-pointer
+                             checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-sm checked:before:inset-0 checked:before:flex checked:before:items-center checked:before:justify-center" />
+                    <span class="text-foreground">Traffic Chart</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="hourly-chart-checkbox" checked
+                      class="appearance-none h-5 w-5 border-2 border-border rounded-md checked:bg-primary checked:border-primary
+                             transition duration-200 relative cursor-pointer
+                             checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-sm checked:before:inset-0 checked:before:flex checked:before:items-center checked:before:justify-center" />
+                    <span class="text-foreground">Hourly Trends Chart</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="summary-table-checkbox" checked
+                      class="appearance-none h-5 w-5 border-2 border-border rounded-md checked:bg-primary checked:border-primary
+                             transition duration-200 relative cursor-pointer
+                             checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-sm checked:before:inset-0 checked:before:flex checked:before:items-center checked:before:justify-center" />
+                    <span class="text-foreground">Summary</span>
+                </label>
+                
+            </div>
+    
+            <div class="mt-4 flex justify-end gap-2">
+                <button id="cancelReport" class="px-3 py-1 border border-border rounded-lg">Cancel</button>
+                <button id="confirmReport" class="px-3 py-1 bg-primary text-white rounded-lg">Generate PDF</button>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     
     <!-- Dashboard Header -->
@@ -219,116 +263,174 @@ include 'includes/header.php';
 </main>
 
 <!-- Hidden PDF Container -->
-<!-- some funny fuckery here-->
 <div id="pdfContainer" style="display:none; width:100%; max-width:760px; background:white; padding:20px; transform: translateX(-24pt); box-sizing:border-box;">
     <?php include 'pdf_template.php'; ?>
 </div>
 
-<!-- Scripts -->
+<!-- Scripts, now minified for your viewing pleasure -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script>
-// THIS IS HIDEOUS. I need to refactor this, specifically the duplicate chart draw calls, but I have no idea where to start.
-// WHAT THE ACTUAL FUCK.
-const chartData = <?=json_encode($chartData)?>;
+    const chartData = <?=json_encode($chartData)?>;
 const hourlyData = <?=json_encode($hourlyData)?>;
-
 const ctxMain = document.getElementById('analyticsChart').getContext('2d');
 new Chart(ctxMain, {
     type: 'line',
     data: {
-        labels: chartData.map(r=>r.date),
-        datasets:[
-            {label:'Page Views', data: chartData.map(r=>r.page_views), borderColor:'#007bff', fill:false},
-            {label:'Conversions', data: chartData.map(r=>r.conversions), borderColor:'#ffc107', fill:false},
-            {label:'Sessions', data: chartData.map(r=>r.sessions), borderColor:'#28a745', fill:false}
-        ]
+        labels: chartData.map(r => r.date),
+        datasets: [{
+            label: 'Page Views',
+            data: chartData.map(r => r.page_views),
+            borderColor: '#007bff',
+            fill: false
+        }, {
+            label: 'Conversions',
+            data: chartData.map(r => r.conversions),
+            borderColor: '#ffc107',
+            fill: false
+        }, {
+            label: 'Sessions',
+            data: chartData.map(r => r.sessions),
+            borderColor: '#28a745',
+            fill: false
+        }]
     },
-    options:{responsive:true, maintainAspectRatio:false}
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
 });
-
 const ctxHourly = document.getElementById('hourlyChart').getContext('2d');
 new Chart(ctxHourly, {
-    type:'line',
-    data:{
-        labels: hourlyData.map(r=>String(r.hour).padStart(2,'0')+":00"),
-        datasets:[
-            {label:'Page Views', data: hourlyData.map(r=>r.avg_page_views), borderColor:'#007bff', fill:false},
-            {label:'Conversions', data: hourlyData.map(r=>r.avg_conversions), borderColor:'#ffc107', fill:false},
-            {label:'Sessions', data: hourlyData.map(r=>r.avg_sessions), borderColor:'#28a745', fill:false}
-        ]
+    type: 'line',
+    data: {
+        labels: hourlyData.map(r => String(r.hour).padStart(2, '0') + ":00"),
+        datasets: [{
+            label: 'Page Views',
+            data: hourlyData.map(r => r.avg_page_views),
+            borderColor: '#007bff',
+            fill: false
+        }, {
+            label: 'Conversions',
+            data: hourlyData.map(r => r.avg_conversions),
+            borderColor: '#ffc107',
+            fill: false
+        }, {
+            label: 'Sessions',
+            data: hourlyData.map(r => r.avg_sessions),
+            borderColor: '#28a745',
+            fill: false
+        }]
     },
-    options:{responsive:true, maintainAspectRatio:false}
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
 });
-
-// PDF export
-// god this was bad
 let pdfTrafficChartInstance = null;
 let pdfHourlyChartInstance = null;
 const overlay = document.getElementById('geo-loading-overlay');
-
 async function buildPdfCharts() {
-    // Loading screen display
+    const statisticsTable = document.getElementById("statistics-table-checkbox").checked;
+    const trafficChart = document.getElementById("traffic-chart-checkbox").checked;
+    const hourlyChart = document.getElementById("hourly-chart-checkbox").checked;
+    const summaryTable = document.getElementById("summary-table-checkbox").checked;
     if (overlay) overlay.classList.remove('hidden');
-    
-    // Temporarily show container so canvas can render correctly...the FIRST time
     const pdfContainer = document.getElementById('pdfContainer');
     pdfContainer.style.display = 'block';
-
     if (pdfTrafficChartInstance) pdfTrafficChartInstance.destroy();
     if (pdfHourlyChartInstance) pdfHourlyChartInstance.destroy();
-    
     const trafficCtx = document.getElementById('pdfTrafficChart').getContext('2d');
     pdfTrafficChartInstance = new Chart(trafficCtx, {
         type: 'line',
         data: {
             labels: chartData.map(r => r.date),
-            datasets: [
-                { label: 'Page Views', data: chartData.map(r => r.page_views), borderColor:'#007bff', fill:false },
-                { label: 'Conversions', data: chartData.map(r => r.conversions), borderColor:'#ffc107', fill:false },
-                { label: 'Sessions', data: chartData.map(r => r.sessions), borderColor:'#28a745', fill:false }
-            ]
+            datasets: [{
+                label: 'Page Views',
+                data: chartData.map(r => r.page_views),
+                borderColor: '#007bff',
+                fill: false
+            }, {
+                label: 'Conversions',
+                data: chartData.map(r => r.conversions),
+                borderColor: '#ffc107',
+                fill: false
+            }, {
+                label: 'Sessions',
+                data: chartData.map(r => r.sessions),
+                borderColor: '#28a745',
+                fill: false
+            }]
         },
-        options: { responsive:true, maintainAspectRatio:false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
     });
-    
     const hourlyCtx = document.getElementById('pdfHourlyChart').getContext('2d');
     pdfHourlyChartInstance = new Chart(hourlyCtx, {
         type: 'line',
         data: {
-            labels: hourlyData.map(r => String(r.hour).padStart(2,'0')+":00"),
-            datasets: [
-                { label: 'Page Views', data: hourlyData.map(r => r.avg_page_views), borderColor:'#007bff', fill:false },
-                { label: 'Conversions', data: hourlyData.map(r => r.avg_conversions), borderColor:'#ffc107', fill:false },
-                { label: 'Sessions', data: hourlyData.map(r => r.avg_sessions), borderColor:'#28a745', fill:false }
-            ]
+            labels: hourlyData.map(r => String(r.hour).padStart(2, '0') + ":00"),
+            datasets: [{
+                label: 'Page Views',
+                data: hourlyData.map(r => r.avg_page_views),
+                borderColor: '#007bff',
+                fill: false
+            }, {
+                label: 'Conversions',
+                data: hourlyData.map(r => r.avg_conversions),
+                borderColor: '#ffc107',
+                fill: false
+            }, {
+                label: 'Sessions',
+                data: hourlyData.map(r => r.avg_sessions),
+                borderColor: '#28a745',
+                fill: false
+            }]
         },
-        options: { responsive:true, maintainAspectRatio:false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
     });
-
-    // Fucking JS promises
-    // If you're gonna set a timeout so low why even bother
     await new Promise(r => setTimeout(r, 300));
-    
     if (overlay) overlay.classList.add('hidden');
-    
     return pdfContainer;
 }
-
-document.getElementById('downloadPdf').addEventListener('click', async () => {
+const modal = document.getElementById('report-options-modal');
+const downloadBtn = document.getElementById('downloadPdf');
+const confirmBtn = document.getElementById('confirmReport');
+const cancelBtn = document.getElementById('cancelReport');
+downloadBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+});
+cancelBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+});
+confirmBtn.addEventListener('click', async () => {
+    modal.classList.add('hidden');
     const container = await buildPdfCharts();
-    
     html2pdf().set({
-    margin:10,
-    filename:'analytics_report.pdf',
-    image:{type:'jpeg', quality:0.98},
-    html2canvas:{scale:1.8, useCORS:true},
-    jsPDF:{unit:'pt', format:'a4', orientation:'portrait'}
+        margin: 10,
+        filename: 'analytics_report.pdf',
+        image: {
+            type: 'jpeg',
+            quality: 0.98
+        },
+        html2canvas: {
+            scale: 1.8,
+            useCORS: true
+        },
+        jsPDF: {
+            unit: 'pt',
+            format: 'a4',
+            orientation: 'portrait'
+        }
     }).from(container).save().finally(() => {
         container.style.display = 'none';
     });
 });
-
 </script>
 
 <?php include 'includes/footer.php'; ?>

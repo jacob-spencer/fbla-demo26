@@ -21,7 +21,7 @@ include 'includes/header.php';
             <a href="/" class="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors">
                 Go Home
             </a>
-            <a href="/search.php" class="px-6 py-3 border border-border hover:bg-muted text-foreground rounded-lg transition-colors">
+            <a href="/search" class="px-6 py-3 border border-border hover:bg-muted text-foreground rounded-lg transition-colors">
                 Search Businesses
             </a>
         </div>

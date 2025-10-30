@@ -133,13 +133,13 @@ $businesses = getFilteredBusinesses($db, [
 <?php if(!empty($businesses)): ?>
 <div class="space-y-6">
     <?php foreach($businesses as $b): ?>
-    <div class="bg-card rounded-xl shadow-sm border border-border overflow-hidden business-card cursor-pointer hover:shadow-md transition-shadow"
-         onclick="window.location.href='/business.php?id=<?php echo urlencode($b['id']); ?>'">
+    <div class="rounded-xl shadow-sm business-card cursor-pointer"
+         onclick="window.location.href='/business?id=<?php echo urlencode($b['id']); ?>'">
         <div class="flex h-40">
             <div class="relative flex-shrink-0">
                 <img src="<?php echo escapeHtml($b['image_url']?:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=200'); ?>" 
                      alt="<?php echo escapeHtml($b['name']); ?>" class="w-48 h-full object-cover">
-                <button class="absolute top-2 right-2 w-7 h-7 bg-secondary/90 hover:bg-secondary rounded-full flex items-center justify-center">
+                <button class="absolute top-2 right-2 w-7 h-7 bg-secondary/90 hover:bg-secondary rounded-full flex items-center justify-center" onclick="event.stopPropagation(); toggleBookmark(${b.id}); alert('hey!');">
                     <i data-lucide="bookmark" class="w-3 h-3 text-secondary-foreground"></i>
                 </button>
             </div>
@@ -192,6 +192,6 @@ $businesses = getFilteredBusinesses($db, [
     </div>
     <h3 class="text-2xl font-semibold text-foreground mb-4">No businesses found</h3>
     <p class="text-muted-foreground max-w-md mx-auto mb-6">Try adjusting your search terms or filters.</p>
-    <a href="/search.php" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">Clear All Filters</a>
+    <a href="/search" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">Clear All Filters</a>
 </div>
 <?php endif; ?>

@@ -11,7 +11,7 @@
     </div>
 
     <!-- Metrics Grid -->
-    <div class="metrics-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:40px;">
+    <div id="metrics-grid" class="metrics-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:40px;">
         <div class="metric-card" style="background:#f8f9fa; padding:20px; border-radius:8px; text-align:center; border-left:4px solid #007bff;">
             <div class="metric-title" style="font-size:14px; color:#666; margin-bottom:10px; font-weight:bold;">Page Views</div>
             <div class="metric-value" style="font-size:32px; font-weight:bold; color:#007bff; margin-bottom:5px;"><?= number_format($aggregatedStats['page_views']) ?></div>
@@ -56,7 +56,7 @@
     <!-- Performance Summary Table -->
     <div class="chart-section" style="margin-bottom:40px;">
         <h2 class="chart-title" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#333;">Performance Summary</h2>
-        <table class="summary-table" style="width:100%; border-collapse:collapse; margin-top:20px;">
+        <table id="performance-summary-table" class="summary-table" style="width:100%; border-collapse:collapse; margin-top:20px;">
             <thead>
                 <tr>
                     <th style="padding:12px; text-align:left; border-bottom:1px solid #ddd; background:#f8f9fa; font-weight:bold;">Time Range</th>
