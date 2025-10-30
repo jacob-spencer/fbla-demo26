@@ -1,4 +1,4 @@
-# fbla-demo26
+# Mainstreet.lt
 FBLA Coding and Programming 2025-26 Project
 
 ## Overview
