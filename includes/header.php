@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<?php 
+if (file_exists(substr(__DIR__, 0, -9).'/maintenance.flag')) {
+    header('Location: /maintenance.php');
+    exit;
+}
+?>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -72,6 +78,8 @@
         }
     </style>
 </head>
+
+
 <body class="bg-background text-foreground">
 
 <!-- Styles for the widget -->
@@ -624,5 +632,9 @@
       bars[1].classList.remove('opacity-0');
       bars[2].classList.remove('-rotate-45', '-translate-y-2');
     }
+  });
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    new ShaderBackground('shader-canvas', '/assets/purple.jpg');
   });
 </script>
