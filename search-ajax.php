@@ -100,14 +100,15 @@ class SearchService {
 
         $businesses = $this->db->fetchAll($sql, $sqlParams);
 
-        if ($params['open'] !== null && $params['open'] !== '') {
-            $businesses = array_filter($businesses, function($b) use ($params) {
-                $openingHours = $b['opening_hours'] ?? '';
-                $timezone = $b['timezone'] ?? 'UTC';
-                $open = isBusinessOpen($openingHours, $timezone);
-                return $params['open'] ? $open : !$open;
+        if (@$params['open'] !== null && @$params['open'] !== '') {
+            $businesses = @array_filter($businesses, function($b) use ($params) {
+                $openingHours = @$b['opening_hours'] ?? '';
+                $timezone = @$b['timezone'] ?? 'UTC';
+                $open = @isBusinessOpen($openingHours, $timezone);
+                return @$params['open'] ? $open : !$open;
             });
         }
+
 
         return $businesses;
     }

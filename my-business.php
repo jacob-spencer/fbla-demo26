@@ -2,24 +2,18 @@
 require_once 'functions.php';
 
 requireAuth();
-$user = getCurrentUser();
-
-if (!$user['is_business_owner']) {
-    header('Location: /');
-    exit;
-}
 
 $db = Database::getInstance();
 $error = '';
 $success = '';
+$user = getCurrentUser();
 
 // Get user's business
 $business = $db->fetch("
     SELECT b.*, c.name as category_name 
     FROM businesses b 
     LEFT JOIN categories c ON b.category_id = c.id 
-    WHERE b.owner_id = ?
-", [$user['id']]);
+    WHERE b.owner_id = ?", [$user['id']]);
 
 // Get categories for form
 $categories = $db->fetchAll("SELECT * FROM categories ORDER BY name ASC");
@@ -123,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         SELECT b.*, c.name as category_name 
                         FROM businesses b 
                         LEFT JOIN categories c ON b.category_id = c.id 
-                        WHERE b.owner_id = ?
-                    ", [$user['id']]);
+                        WHERE b.owner_id = ?", [$user['id']]
+                    );
                 }
             } catch (Exception $e) {
                 $error = 'Failed to save business. Please try again.';
@@ -201,26 +195,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 }
 
-// Handle deal deletion (thanks GPT for this one :)
+// Handle deal deletion
 if (isset($_GET['delete_deal']) && $business) {
     $dealId = $_GET['delete_deal'];
     $deal = $db->fetch("SELECT * FROM deals WHERE id = ? AND business_id = ?", [$dealId, $business['id']]);
     
     if ($deal) {
         $db->query("DELETE FROM deals WHERE id = ?", [$dealId]);
-        $success = "Deal deleted successfully.";
-        
-        header('Location: my-business.php');
+        header('Location: my-business.php?success=' . urlencode('Deal deleted successfully.'));
         exit;
-        
-        // Shouldn't run this
-        // Refresh deals list
-        $deals = $db->fetchAll("SELECT * FROM deals WHERE business_id = ? ORDER BY created_at DESC", [$business['id']]);
-    } else {
-        // This is totally unnecessary, it adds an ugly warning if there are no associated deals in the DB
-        // even if nothing is wrong. 
-        // $error = "No deals found for this business.";
     }
+}
+
+// Get reviews for the business
+$reviews = [];
+if ($business) {
+    $reviews = $db->fetchAll("
+        SELECT r.*, u.first_name, u.last_name, u.profile_image_url, u.username 
+        FROM reviews r 
+        LEFT JOIN users u ON r.user_id = u.id 
+        WHERE r.business_id = ?
+        ORDER BY r.created_at DESC
+    ", [$business['id']]);
+}
+
+// Handle success messages from redirects
+if (isset($_GET['success'])) {
+    $success = $_GET['success'];
 }
 
 // Initialize page
@@ -229,14 +230,56 @@ $pageDescription = 'Manage your business profile and information';
 
 include 'includes/header.php';
 ?>
-
-<!-- yucky style -->
 <style>
-    .tab {
-      display: none; 
+/* Glowing wave effect */
+.wave-left-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-left-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-top {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+.wave-right-bottom {
+    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
+}
+@keyframes waveLeft {
+    0% { transform: translateX(-40%); }
+    100% { transform: translateX(-40%); }
+}
+@keyframes waveRight {
+    0% { transform: translateX(40%); }
+    100% { transform: translateX(40%); }
+}
+#waves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;          /* will be updated via JS */
+    z-index: -10;
+    overflow: hidden;      /* keep wave shapes from spilling outside */
+}
+</style>
+
+<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {const container = document.getElementById("waves");const wavePatterns = [{ classes: "left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top", verticalOffset: -0.25 },{ classes: "-left-1/2 w-[90vw] h-[90vh] wave-left-top", verticalOffset: 0.33 },{ classes: "left-1/2 w-[100vw] h-[75vh] wave-left-bottom", verticalOffset: 0.66 },{ classes: "-left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },{ classes: "left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },{ classes: "left-1/2 w-[100vw] h-[70vh] wave-left-bottom", verticalOffset: -0.2 },];function spawnWaves() {container.innerHTML = "";const pageHeight = document.body.scrollHeight;const sectionHeight = window.innerHeight;const numSections = Math.ceil(pageHeight / sectionHeight);for (let i = 0; i < numSections; i++) {const offsetY = i * sectionHeight;wavePatterns.forEach(cfg => {const div = document.createElement("div");div.className = `absolute ${cfg.classes}`;const waveOffset = cfg.verticalOffset ? cfg.verticalOffset * sectionHeight : 0;div.style.top = `${offsetY + waveOffset}px`;container.appendChild(div);});}}function resizeWavesContainer() {container.style.height = document.body.scrollHeight + "px";}window.addEventListener("load", () => {resizeWavesContainer();spawnWaves();});window.addEventListener("resize", () => {resizeWavesContainer();spawnWaves();});});
+</script>
+
+<style>
+    .sidebar-section {
+        display: none;
     }
-    .active {
-      display: block;
+    .sidebar-section.active {
+        display: block;
+    }
+    .sidebar-nav-item.active {
+        background-color: hsl(var(--accent));
+        color: black;
+        font-weight: 600;
     }
 </style>
 
@@ -244,7 +287,7 @@ include 'includes/header.php';
     function showMessage(e,t="info"){let a=document.getElementById("message-modal"),l=document.getElementById("message-text"),n=document.getElementById("message-icon"),s=document.getElementById("message-close");l.innerHTML=e,n.innerHTML="";let c="",i="";switch(t){case"success":c="check-circle",i="text-green-500";break;case"error":c="alert-circle",i="text-red-500";break;case"warning":c="alert-triangle",i="text-yellow-500";break;default:c="info",i="text-blue-500"}let d=document.createElement("i");d.setAttribute("data-lucide",c),d.className=`w-10 h-10 ${i} mb-2`,n.appendChild(d),a.classList.remove("hidden"),lucide.createIcons(),s.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}document.addEventListener("DOMContentLoaded",function(e){console.log("DOM fully loaded, getting lat/long"),console.log("Prompting user location"),fillLatLong()});
 </script>
 
-<main class="min-h-screen bg-background py-20">
+<main class="min-h-screen bg-background pt-16">
     <div id="message-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
         <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
             <button id="message-close" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xl font-bold">
@@ -269,66 +312,101 @@ include 'includes/header.php';
         </div>
     </div>
     
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-foreground mb-2">My Business</h1>
-            <p class="text-muted-foreground">Manage your business profile and information</p>
-        </div>
-
-        <?php if ($error): ?>
-        <div class="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
-            <div class="flex items-center">
-                <i data-lucide="alert-circle" class="w-5 h-5 text-destructive mr-2"></i>
-                <span class="text-destructive"><?php echo escapeHtml($error); ?></span>
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-card/40 top-16 sticky h-[calc(100vh-5rem)] overflow-y-auto hidden lg:block">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-foreground mb-6">My Business</h2>
+                <nav class="space-y-2">
+                    <a href="#" onclick="showSection('overview'); return false;" data-section="overview" class="sidebar-nav-item text-accent flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        <span>Overview</span>
+                    </a>
+                    <a href="#" onclick="showSection('business-setting'); return false;" data-section="business-setting" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                        <span>Business Settings</span>
+                    </a>
+                    <a href="#" onclick="showSection('deals'); return false;" data-section="deals" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                        <i data-lucide="circle-dollar-sign" class="w-5 h-5"></i>
+                        <span>Deals</span>
+                    </a>
+                    <a href="#" onclick="showSection('reviews'); return false;" data-section="reviews" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                        <i data-lucide="star" class="w-5 h-5"></i>
+                        <span>Reviews</span>
+                    </a>
+                    <a href="#" onclick="showSection('hours'); return false;" data-section="hours" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                        <span>Hours</span>
+                    </a>
+                </nav>
             </div>
-        </div>
-        <?php endif; ?>
+        </aside>
 
-        <?php if ($success): ?>
-        <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6">
-            <div class="flex items-center">
-                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2"></i>
-                <span class="text-green-500"><?php echo escapeHtml($success); ?></span>
-            </div>
-        </div>
-        <?php endif; ?>
+        <!-- Mobile menu toggle -->
+        <button id="mobile-menu-toggle" class="lg:hidden fixed bottom-4 right-4 z-50 bg-accent text-black p-4 rounded-full shadow-lg">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
 
-        <!-- Toolbar -->
-        <div class="bg-card rounded-xl border border-border p-6 mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <a onclick="openTab('overview')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="menu" class="w-4 h-4 mr-2 inline"></i>
-                        Overview
-                    </a>
-                    <a onclick="openTab('business-setting')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="settings" class="w-4 h-4 mr-2 inline"></i>
-                        Business Settings
-                    </a>
-                    <a onclick="openTab('deals')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="circle-dollar-sign" class="w-4 h-4 mr-2 inline"></i>
-                        Deals
-                    </a>
-                    <a onclick="openTab('reviews')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="star" class="w-4 h-4 mr-2 inline"></i>
-                        Reviews
-                    </a>
-                    <a onclick="openTab('hours')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="Clock" class="w-4 h-4 mr-2 inline"></i>
-                        Hours
-                    </a>
+        <!-- Mobile sidebar overlay -->
+        <div id="mobile-sidebar" class="lg:hidden fixed inset-0 bg-black/50 z-40 hidden">
+            <aside class="w-64 bg-card/40 h-full overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-foreground">My Business</h2>
+                        <button id="mobile-menu-close" class="text-foreground">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <nav class="space-y-2">
+                        <a href="#" onclick="showSection('overview'); closeMobileMenu(); return false;" data-section="overview" class="sidebar-nav-item text-accent flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                            <span>Overview</span>
+                        </a>
+                        <a href="#" onclick="showSection('business-setting'); closeMobileMenu(); return false;" data-section="business-setting" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                            <span>Business Settings</span>
+                        </a>
+                        <a href="#" onclick="showSection('deals'); closeMobileMenu(); return false;" data-section="deals" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                            <i data-lucide="circle-dollar-sign" class="w-5 h-5"></i>
+                            <span>Deals</span>
+                        </a>
+                        <a href="#" onclick="showSection('reviews'); closeMobileMenu(); return false;" data-section="reviews" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                            <i data-lucide="star" class="w-5 h-5"></i>
+                            <span>Reviews</span>
+                        </a>
+                        <a href="#" onclick="showSection('hours'); closeMobileMenu(); return false;" data-section="hours" class="sidebar-nav-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                            <i data-lucide="clock" class="w-5 h-5"></i>
+                            <span>Hours</span>
+                        </a>
+                    </nav>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 px-4 sm:px-6 lg:px-8 py-12">
+            
+            <?php if ($error): ?>
+            <div class="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-destructive mr-2"></i>
+                    <span class="text-destructive"><?php echo escapeHtml($error); ?></span>
                 </div>
             </div>
-        </div>
+            <?php endif; ?>
+
+            <?php if ($success): ?>
+            <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2"></i>
+                    <span class="text-green-500"><?php echo escapeHtml($success); ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
         
         <?php if ($business): ?>
         <!-- Business Preview -->
-        <div id="overview" class="tab">
+        <div id="overview" class="sidebar-section active">
             <div class="bg-card rounded-xl border border-border p-6 mb-8">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-semibold text-foreground">Business Preview</h2>
@@ -372,11 +450,11 @@ include 'includes/header.php';
         <?php else: ?>
         <script>
             showMessage("No business found. <br>Try creating one in the <strong>'Business Settings'</strong> menu.", "warning");
-            openTab('business-setting');
+            showSection('business-setting');
         </script>
         <?php endif; ?>
 
-        <div id="business-setting" class="tab">
+        <div id="business-setting" class="sidebar-section">
             <!-- Business Form -->
             <div class="bg-card rounded-xl border border-border p-6">
                 <h2 class="text-xl font-semibold text-foreground mb-6">
@@ -491,15 +569,12 @@ include 'includes/header.php';
                                    value="<?php echo escapeHtml($country); ?>"
                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
-                            <label for="country" class="block text-sm font-medium text-foreground mb-2">&nbsp;</label>
-                            <button type="button" onclick="fillLocation()" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+                            <label class="block text-sm font-medium text-foreground mb-2">&nbsp;</label>
+                            <button type="button" onclick="fillLocation()" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors w-full">
                                 Autofill Location
                             </button>
                         </div>
-                    </div>
                     </div>
     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -554,7 +629,7 @@ include 'includes/header.php';
         </div>
         
         <?php if($business): ?>
-        <div id="deals" class="tab">
+        <div id="deals" class="sidebar-section">
             <!-- Deal Form -->
             <div class="bg-card rounded-xl border border-border p-6">
                 <h2 class="text-xl font-semibold text-foreground mb-6">
@@ -665,30 +740,76 @@ include 'includes/header.php';
         <?php else: ?>
         <script>
             showMessage("No business found. <br>You need to create one before setting deals.", "warning");
-            openTab('business-setting');
+            showSection('business-setting');
         </script>
         <?php endif; ?>
         
         <?php if($business): ?>
-        <div id="reviews" class="tab">
-            <!-- Review Form -->
+        <div id="reviews" class="sidebar-section">
             <div class="bg-card rounded-xl border border-border p-6">
-                <h2 class="text-xl font-semibold text-foreground mb-6">
-                    <?php echo $business ? 'Reviews' : 'Reviews'; ?>
-                </h2>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-foreground">
+                        Reviews (<?php echo count($reviews); ?>)
+                    </h2>
+                </div>
                 
-                <p class="text-foreground mb-2"> Feature not implemented!</p>
-    
+                <?php if (empty($reviews)): ?>
+                    <div class="text-center py-12">
+                        <i data-lucide="star" class="w-16 h-16 text-muted-foreground mx-auto mb-4"></i>
+                        <p class="text-muted-foreground text-lg">No reviews yet</p>
+                        <p class="text-muted-foreground text-sm mt-2">Your business hasn't received any reviews yet.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-6">
+                        <?php foreach ($reviews as $review): ?>
+                        <div class="border-b border-border pb-6 last:border-b-0 last:pb-0">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <?php if ($review['profile_image_url']): ?>
+                                    <img src="<?php echo escapeHtml($review['profile_image_url']); ?>" 
+                                         alt="Profile" class="w-12 h-12 rounded-full object-cover">
+                                    <?php else: ?>
+                                    <div class="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                                        <i data-lucide="user" class="w-6 h-6 text-primary"></i>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div>
+                                            <a href="/profile?u=<?php echo escapeHtml($review['username']); ?>" 
+                                               class="font-semibold text-foreground hover:text-primary">
+                                                <?php echo escapeHtml($review['first_name'] . ' ' . $review['last_name']); ?>
+                                            </a>
+                                            <div class="flex items-center space-x-2 mt-1">
+                                                <div class="flex items-center">
+                                                    <?php echo renderStars($review['rating']); ?>
+                                                </div>
+                                                <span class="text-sm text-muted-foreground">
+                                                    <?php echo timeAgo($review['created_at']); ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php if (!empty($review['comment'])): ?>
+                                    <p class="text-foreground mt-2"><?php echo escapeHtml($review['comment']); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
         <?php else: ?>
         <script>
             showMessage("No business found. <br>You need to create one before viewing reviews.", "warning");
-            openTab('business-setting');
+            showSection('business-setting');
         </script>
         <?php endif; ?>
         
-        <div id="hours" class="tab">
+        <div id="hours" class="sidebar-section">
             <!-- Hours Form -->
             <div class="bg-card rounded-xl border border-border p-6">
                 <h2 class="text-xl font-semibold text-foreground mb-6">
@@ -760,7 +881,68 @@ include 'includes/header.php';
 </main>
 
 <script>
-function openTab(e){let t=document.querySelectorAll(".tab");t.forEach(e=>e.classList.remove("active"));let a=document.getElementById(e);a&&a.classList.add("active")}function showMessage(e,t="info"){let a=document.getElementById("message-modal"),n=document.getElementById("message-text"),o=document.getElementById("message-icon"),r=document.getElementById("message-close");n.textContent=e,o.innerHTML="";let l="",s="";switch(t){case"success":l="check-circle",s="text-green-500";break;case"error":l="alert-circle",s="text-red-500";break;case"warning":l="alert-triangle",s="text-yellow-500";break;default:l="info",s="text-blue-500"}let i=document.createElement("i");i.setAttribute("data-lucide",l),i.className=`w-10 h-10 ${s} mb-2`,o.appendChild(i),a.classList.remove("hidden"),lucide.createIcons(),r.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}function showConfirm(e){return new Promise(t=>{let a=document.getElementById("confirm-modal"),n=document.getElementById("confirm-text"),o=document.getElementById("confirm-yes"),r=document.getElementById("confirm-no");n.textContent=e,a.classList.remove("hidden");let l=()=>{a.classList.add("hidden"),o.onclick=null,r.onclick=null};o.onclick=()=>{l(),t(!0)},r.onclick=()=>{l(),t(!1)},a.onclick=e=>{e.target===a&&(l(),t(!1))}})}async function handleDeleteDeal(e){let t=await showConfirm("Are you sure you want to delete this deal?");t&&(window.location.href=e)}function setupDragDrop(e,t,a,n){let o=document.getElementById(e),r=document.getElementById(t),l=document.getElementById(a),s=document.getElementById(n);s.addEventListener("click",()=>o.click()),["dragenter","dragover"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.add("border-primary","bg-muted/20")})}),["dragleave","drop"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.remove("border-primary","bg-muted/20")})}),s.addEventListener("drop",e=>{let t=e.dataTransfer.files[0];if(t&&(o.files=e.dataTransfer.files,r.textContent=t.name,l)){let a=new FileReader;a.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},a.readAsDataURL(t)}}),o.addEventListener("change",()=>{let e=o.files[0];if(e){if(r.textContent=e.name,l){let t=new FileReader;t.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},t.readAsDataURL(e)}}else r.textContent="Drag & drop an image here, or click to browse",l&&l.classList.add("hidden")})}function fillLatLong(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6)},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}async function fillLocation(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6);try{let n=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${t}&lon=${a}&addressdetails=1`);if(!n.ok)throw Error("Failed to fetch address");let o=await n.json(),r=o.address,l=[r.house_number,r.road].filter(Boolean).join(" "),s=r.city||r.town||r.village||"",i=r.state||"",d=r.postcode||"",c=r.country||"";document.getElementById("street").value=l,document.getElementById("city").value=s,document.getElementById("state").value=i,document.getElementById("zip").value=d,document.getElementById("country").value=c}catch(g){console.error(g),showMessage("Could not get address.","error")}},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}openTab("overview"),lucide.createIcons(),setupDragDrop("thumbnail","thumbnail-label","thumbnail-preview","thumbnail-dropzone"),setupDragDrop("banner","banner-label","banner-preview","banner-dropzone");
+function showSection(sectionId) {
+    const sections = document.querySelectorAll('.sidebar-section');
+    sections.forEach(s => s.classList.remove('active'));
+    
+    const navItems = document.querySelectorAll('.sidebar-nav-item');
+    navItems.forEach(item => item.classList.remove('text-accent'));
+    
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.add('active');
+    }
+    
+    const activeNavs = document.querySelectorAll(`[data-section="${sectionId}"]`);
+    activeNavs.forEach(nav => nav.classList.add('text-accent'));
+    
+    lucide.createIcons();
+}
+
+function closeMobileMenu() {
+    document.getElementById('mobile-sidebar').classList.add('hidden');
+}
+
+function showMessage(e,t="info"){let a=document.getElementById("message-modal"),n=document.getElementById("message-text"),o=document.getElementById("message-icon"),r=document.getElementById("message-close");n.textContent=e,o.innerHTML="";let l="",s="";switch(t){case"success":l="check-circle",s="text-green-500";break;case"error":l="alert-circle",s="text-red-500";break;case"warning":l="alert-triangle",s="text-yellow-500";break;default:l="info",s="text-blue-500"}let i=document.createElement("i");i.setAttribute("data-lucide",l),i.className=`w-10 h-10 ${s} mb-2`,o.appendChild(i),a.classList.remove("hidden"),lucide.createIcons(),r.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}
+
+function showConfirm(e){return new Promise(t=>{let a=document.getElementById("confirm-modal"),n=document.getElementById("confirm-text"),o=document.getElementById("confirm-yes"),r=document.getElementById("confirm-no");n.textContent=e,a.classList.remove("hidden");let l=()=>{a.classList.add("hidden"),o.onclick=null,r.onclick=null};o.onclick=()=>{l(),t(!0)},r.onclick=()=>{l(),t(!1)},a.onclick=e=>{e.target===a&&(l(),t(!1))}})}
+
+async function handleDeleteDeal(e){let t=await showConfirm("Are you sure you want to delete this deal?");t&&(window.location.href=e)}
+
+function setupDragDrop(e,t,a,n){let o=document.getElementById(e),r=document.getElementById(t),l=document.getElementById(a),s=document.getElementById(n);s.addEventListener("click",()=>o.click()),["dragenter","dragover"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.add("border-primary","bg-muted/20")})}),["dragleave","drop"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.remove("border-primary","bg-muted/20")})}),s.addEventListener("drop",e=>{let t=e.dataTransfer.files[0];if(t&&(o.files=e.dataTransfer.files,r.textContent=t.name,l)){let a=new FileReader;a.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},a.readAsDataURL(t)}}),o.addEventListener("change",()=>{let e=o.files[0];if(e){if(r.textContent=e.name,l){let t=new FileReader;t.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},t.readAsDataURL(e)}}else r.textContent="Drag & drop an image here, or click to browse",l&&l.classList.add("hidden")})}
+
+function fillLatLong(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6)},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}
+
+async function fillLocation(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6);try{let n=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${t}&lon=${a}&addressdetails=1`);if(!n.ok)throw Error("Failed to fetch address");let o=await n.json(),r=o.address,l=[r.house_number,r.road].filter(Boolean).join(" "),s=r.city||r.town||r.village||"",i=r.state||"",d=r.postcode||"",c=r.country||"";document.getElementById("street").value=l,document.getElementById("city").value=s,document.getElementById("state").value=i,document.getElementById("zip").value=d,document.getElementById("country").value=c}catch(g){console.error(g),showMessage("Could not get address.","error")}},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileToggle = document.getElementById('mobile-menu-toggle');
+    const mobileSidebar = document.getElementById('mobile-sidebar');
+    const mobileClose = document.getElementById('mobile-menu-close');
+    
+    if (mobileToggle) {
+        mobileToggle.addEventListener('click', () => {
+            mobileSidebar.classList.remove('hidden');
+            lucide.createIcons();
+        });
+    }
+    
+    if (mobileClose) {
+        mobileClose.addEventListener('click', closeMobileMenu);
+    }
+    
+    if (mobileSidebar) {
+        mobileSidebar.addEventListener('click', (e) => {
+            if (e.target === mobileSidebar) {
+                closeMobileMenu();
+            }
+        });
+    }
+    
+    lucide.createIcons();
+    setupDragDrop("thumbnail","thumbnail-label","thumbnail-preview","thumbnail-dropzone");
+    setupDragDrop("banner","banner-label","banner-preview","banner-dropzone");
+});
 </script>
 
 <?php include 'includes/footer.php'; ?>

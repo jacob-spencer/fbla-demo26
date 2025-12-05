@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="header" style="text-align:center; margin-bottom:30px; border-bottom:3px solid #007bff; padding-bottom:20px;">
         <h1 style="margin:0; color:#333; font-size:22pt; font-weight:bold;"><?= htmlspecialchars($business['name']) ?> - Analytics</h1>
-        <p style="margin:5px 0 0 0; color:#666; font-size:14px;">Generated on <?= date("F j, Y") ?> | Dashboard Overview</p>
+        <p style="margin:5px 0 0 0; color:#666; font-size:14px;">Generated on <?= date("F j, Y") ?> at <?= date("H:i:s") ?> | Dashboard Overview</p>
     </div>
 
     <!-- Metrics Grid -->
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Traffic Trends Chart -->
-    <div class="chart-section" style="margin-bottom:40px;">
+    <div id="t-section" class="chart-section" style="margin-bottom:40px;">
         <h2 class="chart-title" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#333;">Traffic Trends Over Time</h2>
         <div class="chart-container" style="position:relative; height:300px; margin-bottom:30px;">
             <canvas id="pdfTrafficChart" style="width:100%; height:300px;"></canvas>
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Hourly Traffic Chart -->
-    <div class="chart-section" style="margin-bottom:40px;">
+    <div id="ht-section" class="chart-section" style="margin-bottom:40px;">
         <h2 class="chart-title" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#333;">Average Traffic per Hour (24-hour cycle, UTC)</h2>
         <div class="chart-container" style="position:relative; height:300px; margin-bottom:30px;">
             <canvas id="pdfHourlyChart" style="width:100%; height:300px;"></canvas>
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Performance Summary Table -->
-    <div class="chart-section" style="margin-bottom:40px;">
+    <div id="perf-section" class="chart-section" style="hidden margin-bottom:40px;">
         <h2 class="chart-title" style="font-size:18px; font-weight:bold; margin-bottom:15px; color:#333;">Performance Summary</h2>
         <table id="performance-summary-table" class="summary-table" style="width:100%; border-collapse:collapse; margin-top:20px;">
             <thead>
@@ -72,7 +72,7 @@
                     <td style="padding:12px; border-bottom:1px solid #ddd;"><?= $row['label'] ?></td>
                     <td style="padding:12px; border-bottom:1px solid #ddd;"><?= number_format($row['page_views']) ?></td>
                     <td style="padding:12px; border-bottom:1px solid #ddd;"><?= number_format($row['sessions']) ?></td>
-                    <td style="padding:12px; border-bottom:1px solid #ddd;"><?= number_format($row['conversions']) ?></td>
+                    <td style="padding:12px; border-bottom:1px solid #ddd;"><?= $row['conversions'] ?></td>
                     <td style="padding:12px; border-bottom:1px solid #ddd;"><?= $row['conversion_rate'] ?>%</td>
                 </tr>
             <?php endforeach; ?>
@@ -83,7 +83,7 @@
     <!-- Footer -->
     <div class="footer" style="text-align:center; margin-top:40px; padding-top:20px; border-top:1px solid #ddd; color:#666; font-size:12px;">
         <p>Mainstreet Analytics Dashboard | Confidential</p>
-        <p>For questions about this report, contact analytics@mainstreet.bargains</p>
+        <p>For questions about this report, contact analytics@mainstreet.lt</p>
     </div>
 </div>
 

@@ -1,28 +1,18 @@
-<style>
-    .fade-top {
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
-        -webkit-mask-repeat: no-repeat;
-        -webkit-mask-size: 100% 100%;
-        mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
-        mask-repeat: no-repeat;
-        mask-size: 100% 100%;
-    } /* fade in cleanly */
-</style>
 
-<footer id="footer" class="relative border-t border-border text-foreground overflow-hidden fade-top">
-    
+<footer id="footer" class="relative backdrop-blur-sm text-foreground overflow-hidden">
+    <!--
     <div class="absolute bottom-0 left-0 w-full h-64 pointer-events-none wave"></div>
     <div class="absolute top-0 right-0 w-full h-48 pointer-events-none wave-top"></div>
-    
+    -->
     <!-- Footer content -->
-    <div class="bg-card/70 backdrop-blur-sm w-full h-full py-12">
+    <div class="backdrop-blur-lg w-full h-full py-12">
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div class="space-y-4">
                          <div class="flex items-center space-x-4">
                             <a href="/" class="flex items-center space-x-2">
-                                <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                <div class="w-8 h-8 black rounded-xl flex items-center justify-center">
                                     <i data-lucide="map-pin" class="text-primary-foreground w-4 h-4"></i>
                                 </div>
                                 <span class="text-xl font-bold text-primary"><?php echo APP_NAME; ?></span>
@@ -40,13 +30,14 @@
                             <li><a href="/search?category=services" class="hover:text-primary transition-colors">Services</a></li>
                             <li><a href="/search?category=pet-care" class="hover:text-primary transition-colors">Pet Care</a></li>
                             <li><a href="/search?category=hotel" class="hover:text-primary transition-colors">Hotel</a></li>
+                            <li><a href="/business-health" class="hover:text-primary transition-colors">Business Health</a></li>
                         </ul>
                     </div>
                     
                     <div>
                         <h4 class="font-semibold mb-4">For Businesses</h4>
                         <ul class="space-y-2 text-muted-foreground">
-                            <li><a href="/my-business" class="hover:text-primary transition-colors">List Your Business</a></li>
+                            <li><a href="/my-business?create" class="hover:text-primary transition-colors">List Your Business</a></li>
                             <li><a href="/my-business" class="hover:text-primary transition-colors">Business Dashboard</a></li>
                             <li><a href="/deals" class="hover:text-primary transition-colors">Promote Deals</a></li>
                             <li><a href="/analytics" class="hover:text-primary transition-colors">Analytics</a></li>

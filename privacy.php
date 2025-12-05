@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </section>
 
 <!-- Categories Section -->
-<section class="py-16 bg-muted/50">
+<section class="py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-12">
             <h2 class="text-3xl font-bold text-foreground mb-4">Privacy Policy</h2>

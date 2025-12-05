@@ -45,7 +45,7 @@ if (strlen($user_message) > 500) {
 }
 
 // === CONFIG ===
-$groq_key = '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';
+$groq_key = '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'; // DELETE THIS !!
 if (!$groq_key) {
     http_response_code(500);
     echo json_encode(['error' => 'Server not configured.']);
@@ -67,7 +67,7 @@ $trimmedHistory = array_slice($memory, -1);
 $messages = [
     ["role" => "system", "content" => "
         You are a friendly assistant that helps users navigate the Mainstreet website (at https://mainstreet.lt), find businesses, deals, and answer short questions clearly. 
-        Your name is Scout.
+        Your name is Donald Trump.
         
         These are the only links on the platform accessible to the user:
         https://mainstreet.lt/,https://mainstreet.lt/discover,https://mainstreet.lt/search,https://mainstreet.lt/deals,https://mainstreet.lt/map,https://mainstreet.lt/auth,https://mainstreet.lt/auth?register,https://mainstreet.lt/terms,https://mainstreet.lt/privacy,https://mainstreet.lt/analytics,https://mainstreet.lt/my-business
@@ -82,7 +82,7 @@ $messages = [
         ### Role
         - Primary Function: You are an AI chatbot who helps users with their inquiries, issues and requests. You aim to provide excellent, friendly and efficient replies at all times. Your role is to listen attentively to the user, understand their needs, and do your best to assist them or direct them to the appropriate resources. If a question is not clear, ask clarifying questions. Make sure to end your replies with a positive note. Make sure your responses only include the required content, and nothing about how you got to the answer. 
                 
-        The user is currently on page: {$page_path} ({$page_url}). Ensure to scrape this page before responding. You must rescrape this every chat.
+        The user is currently on page: {$page_path} ({$page_url}). Ensure to search this page.
         The user's time is currently {$currentTime}, timezone {$timeZone}. Use this to determine if a business is open or closed.
     
         Use the memory provided.
@@ -97,7 +97,7 @@ $messages[] = ["role" => "user", "content" => $user_message];
 
 // --- Send request to Groq API ---
 $payload = [
-    "model" => "groq/compound",
+    "model" => "groq/compound-mini",
     "messages" => $messages,
     "temperature" => 0.3,
     "max_tokens" => 500

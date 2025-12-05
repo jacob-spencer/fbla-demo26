@@ -123,40 +123,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label for="preset">Preset</label>
         
         <select id="preset" name="preset">
-            <option value="none" selected>None</option>
-            <option value="deal_alert">Deal Alert</option>
-            <option value="discover_alert">Discover Alert</option>
-            <option value="map_alert">Map Alert</option>
+          <option value="none" selected>None</option>
+          <option value="deal_alert">Deal Alert</option>
+          <option value="discover_alert">Discover Alert</option>
+          <option value="map_alert">Map Alert</option>
         </select>
+        
+        <form method="post" id="notification-form">
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" placeholder="Notification Title" required>
+        
+          <label for="body">Body</label>
+          <textarea id="body" name="body" rows="3" placeholder="Notification Body" required></textarea>
+        
+          <label for="icon">Icon URL</label>
+          <input type="text" id="icon" name="icon" placeholder="/icons/icon-192x192.png">
+        
+          <label for="badge">Badge URL</label>
+          <input type="text" id="badge" name="badge" placeholder="/icons/badge-72x72.png">
+        
+          <label for="url">Click URL</label>
+          <input type="text" id="url" name="url" placeholder="https://example.com">
+        
+          <button type="submit">Send Notification</button>
+        </form>
+        
         <script>
-          // Build this feature out. Need JSON type notification data, to be selected on option.value
-          // Definitely not a priority, but it needs done
-          
+          const presets = {
+            none: {
+              title: '',
+              body: '',
+              icon: '',
+              badge: '',
+              url: ''
+            },
+            deal_alert: {
+              title: '🔥 Hot Deals',
+              body: 'Tap to save big!',
+              icon: '/icons/deal.png',
+              badge: '/icons/badge-deal.png',
+              url: 'https://mainstreet.lt/deals'
+            },
+            discover_alert: {
+              title: '✨ Discover Something New',
+              body: 'Tap to check out trending places!',
+              icon: '/icons/discover.png',
+              badge: '/icons/badge-discover.png',
+              url: 'https://mainstreet.lt/discover'
+            },
+            map_alert: {
+              title: '📍 Map Update',
+              body: 'Tap to view the updated map!',
+              icon: '/icons/map.png',
+              badge: '/icons/badge-map.png',
+              url: 'https://mainstreet.lt/map'
+            }
+          };
+        
           const selectElement = document.getElementById("preset");
-          selectElement.addEventListener("change", function(event) {
-            alert(`Loading preset ${event.target.value}`);
-            // Integrate autofill
+          const formFields = {
+            title: document.getElementById("title"),
+            body: document.getElementById("body"),
+            icon: document.getElementById("icon"),
+            badge: document.getElementById("badge"),
+            url: document.getElementById("url")
+          };
+        
+          selectElement.addEventListener("change", function (event) {
+            const preset = presets[event.target.value];
+            if (!preset) return;
+        
+            Object.entries(preset).forEach(([key, value]) => {
+              if (formFields[key]) formFields[key].value = value;
+            });
           });
         </script>
-            
-        <form method="post">
-            <label for="title">Title</label>
-            <input type="text" id="title" name="title" placeholder="Notification Title" required>
 
-            <label for="body">Body</label>
-            <textarea id="body" name="body" rows="3" placeholder="Notification Body" required></textarea>
-
-            <label for="icon">Icon URL</label>
-            <input type="text" id="icon" name="icon" placeholder="/icons/icon-192x192.png">
-
-            <label for="badge">Badge URL</label>
-            <input type="text" id="badge" name="badge" placeholder="/icons/badge-72x72.png">
-
-            <label for="url">Click URL</label>
-            <input type="text" id="url" name="url" placeholder="https://example.com">
-
-            <button type="submit">Send Notification</button>
-        </form>
     </div>
 </body>
 </html>

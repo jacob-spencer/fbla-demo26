@@ -1,0 +1,30 @@
+/* mobile.css - Mobile overrides for mainstreet.lt */
+:root{
+  --mobile-breakpoint: 768px;
+}
+
+@media (max-width: 768px) {
+  /* bottom sticky action bar */
+  .mobile-bottom-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    box-shadow: 0 -6px 24px rgba(0,0,0,0.4);
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .mobile-bottom-bar a, .mobile-bottom-bar button {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+}

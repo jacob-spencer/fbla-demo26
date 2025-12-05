@@ -106,7 +106,7 @@ foreach($summaryRanges as $key=>$intervalStr){
         FROM analytics
         WHERE business_id=? AND event_timestamp >= NOW() - INTERVAL $intervalStr
     ", [$business['id']]);
-    $row['conversion_rate'] = $row['sessions']>0 ? round(($row['conversions']/$row['sessions'])*100,1):0;
+    $row['conversion_rate'] = $row['sessions']>0 ? round(($row['conversions']/$row['sessions'])*100,1):0 ?? 0;
     $performanceSummary[$key] = array_merge(['label'=>$timeOptions[$key]['label']],$row);
 }
 
@@ -267,7 +267,7 @@ include 'includes/header.php';
     <?php include 'pdf_template.php'; ?>
 </div>
 
-<!-- Scripts, now minified for your viewing pleasure -->
+<!-- Scripts, now un-minified for your viewing pleasure -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script>
@@ -335,65 +335,82 @@ async function buildPdfCharts() {
     const trafficChart = document.getElementById("traffic-chart-checkbox").checked;
     const hourlyChart = document.getElementById("hourly-chart-checkbox").checked;
     const summaryTable = document.getElementById("summary-table-checkbox").checked;
+
     if (overlay) overlay.classList.remove('hidden');
     const pdfContainer = document.getElementById('pdfContainer');
     pdfContainer.style.display = 'block';
     if (pdfTrafficChartInstance) pdfTrafficChartInstance.destroy();
     if (pdfHourlyChartInstance) pdfHourlyChartInstance.destroy();
     const trafficCtx = document.getElementById('pdfTrafficChart').getContext('2d');
-    pdfTrafficChartInstance = new Chart(trafficCtx, {
-        type: 'line',
-        data: {
-            labels: chartData.map(r => r.date),
-            datasets: [{
-                label: 'Page Views',
-                data: chartData.map(r => r.page_views),
-                borderColor: '#007bff',
-                fill: false
-            }, {
-                label: 'Conversions',
-                data: chartData.map(r => r.conversions),
-                borderColor: '#ffc107',
-                fill: false
-            }, {
-                label: 'Sessions',
-                data: chartData.map(r => r.sessions),
-                borderColor: '#28a745',
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
+    if (trafficCtx) {
+        pdfTrafficChartInstance = new Chart(trafficCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(r => r.date),
+                datasets: [{
+                    label: 'Page Views',
+                    data: chartData.map(r => r.page_views),
+                    borderColor: '#007bff',
+                    fill: false
+                }, {
+                    label: 'Conversions',
+                    data: chartData.map(r => r.conversions),
+                    borderColor: '#ffc107',
+                    fill: false
+                }, {
+                    label: 'Sessions',
+                    data: chartData.map(r => r.sessions),
+                    borderColor: '#28a745',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
     const hourlyCtx = document.getElementById('pdfHourlyChart').getContext('2d');
-    pdfHourlyChartInstance = new Chart(hourlyCtx, {
-        type: 'line',
-        data: {
-            labels: hourlyData.map(r => String(r.hour).padStart(2, '0') + ":00"),
-            datasets: [{
-                label: 'Page Views',
-                data: hourlyData.map(r => r.avg_page_views),
-                borderColor: '#007bff',
-                fill: false
-            }, {
-                label: 'Conversions',
-                data: hourlyData.map(r => r.avg_conversions),
-                borderColor: '#ffc107',
-                fill: false
-            }, {
-                label: 'Sessions',
-                data: hourlyData.map(r => r.avg_sessions),
-                borderColor: '#28a745',
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
+    if (hourlyCtx) {
+        pdfHourlyChartInstance = new Chart(hourlyCtx, {
+            type: 'line',
+            data: {
+                labels: hourlyData.map(r => String(r.hour).padStart(2, '0') + ":00"),
+                datasets: [{
+                    label: 'Page Views',
+                    data: hourlyData.map(r => r.avg_page_views),
+                    borderColor: '#007bff',
+                    fill: false
+                }, {
+                    label: 'Conversions',
+                    data: hourlyData.map(r => r.avg_conversions),
+                    borderColor: '#ffc107',
+                    fill: false
+                }, {
+                    label: 'Sessions',
+                    data: hourlyData.map(r => r.avg_sessions),
+                    borderColor: '#28a745',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+    
+    // Toggle visibility in PDF template
+    const pdfStatisticsTable = document.getElementById("metrics-grid");
+    const pdfTrafficSection = document.getElementById("t-section");
+    const pdfHourlySection = document.getElementById("ht-section");
+    const pdfSummaryTable = document.getElementById("perf-section");
+    
+    if (pdfStatisticsTable) pdfStatisticsTable.style.display = statisticsTable ? "grid" : "none";
+    if (pdfTrafficSection) pdfTrafficSection.style.display = trafficChart ? "" : "none";
+    if (pdfHourlySection) pdfHourlySection.style.display = hourlyChart ? "" : "none";
+    if (pdfSummaryTable) pdfSummaryTable.style.display = summaryTable ? "" : "none";
+
     await new Promise(r => setTimeout(r, 300));
     if (overlay) overlay.classList.add('hidden');
     return pdfContainer;

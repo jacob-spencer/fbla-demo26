@@ -1,5 +1,6 @@
 <?php
 require_once 'functions.php';
+require_once 'includes/shader-tool.php';
 
 $pageTitle = 'Home';
 $pageDescription = 'Discover and connect with local businesses in your area';
@@ -35,54 +36,20 @@ include 'includes/header.php';
 ?>
 
 <style>
-/* Glowing wave effect */
-html, body {
-    overflow-x: hidden; /* prevent horizontal scrolling */
-    overflow-y: auto hidden;   /* allow vertical scroll */
-}
-.wave-left-top, 
-.wave-left-bottom, 
-.wave-right-top, 
-.wave-right-bottom {
-    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    animation: hueRotate 20s ease-in-out infinite alternate;
-    filter: hue-rotate(0deg);
-}
-
-.wave-left-top  { animation-delay: 0s; }
-.wave-left-bottom { animation-delay: 1s; }
-.wave-right-top { animation-delay: 2s; }
-.wave-right-bottom { animation-delay: 3s; }
-
-@keyframes hueRotate {
-    0%   { filter: hue-rotate(0deg); }
-    50%  { filter: hue-rotate(0deg); } 
-    100% { filter: hue-rotate(0deg); }
-}
-
-/* Keep your wave movement animations */
-@keyframes waveLeft { 0%,100% { transform: translateX(-40%); } }
-@keyframes waveRight { 0%,100% { transform: translateX(40%); } }
-
-#waves {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;          /* will be updated via JS */
-    z-index: -10;
-    overflow: hidden;      /* keep wave shapes from spilling outside */
+body {
+    background-image: url("/assets/purple.jpg");
+    background-repeat: no-repeat;
+    background-size: 200% 200%;
+    background-position: center center;
+    background-attachment: fixed; /* Fixes the background */
 }
 </style>
 
-<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
+<?php getLiquidGlassStyles(); ?>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {const container = document.getElementById("waves");const wavePatterns = [{ classes: "left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top", verticalOffset: -0.25 },{ classes: "-left-1/2 w-[90vw] h-[90vh] wave-left-top", verticalOffset: 0.33 },{ classes: "left-1/2 w-[100vw] h-[75vh] wave-left-bottom", verticalOffset: 0.66 },{ classes: "-left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },{ classes: "left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },{ classes: "left-1/2 w-[100vw] h-[70vh] wave-left-bottom", verticalOffset: -0.2 }];function spawnWaves() {container.innerHTML = "";const pageHeight = document.body.scrollHeight;const sectionHeight = window.innerHeight;const numSections = Math.ceil(pageHeight / sectionHeight);for (let i = 0; i < numSections; i++) {const offsetY = i * sectionHeight;wavePatterns.forEach(cfg => {const div = document.createElement("div");div.className = `absolute ${cfg.classes}`;const waveOffset = cfg.verticalOffset ? cfg.verticalOffset * sectionHeight : 0;div.style.top = `${offsetY + waveOffset}px`;container.appendChild(div);});}}function resizeWavesContainer(){container.style.height = document.body.scrollHeight + "px";}window.addEventListener("load", () => {resizeWavesContainer();spawnWaves();});window.addEventListener("resize", () => {resizeWavesContainer();spawnWaves();});});
-</script>
-
-
-<section class="text-white pt-40">
+<div>
+    <div class="content-extern">
+        <section class="text-white pt-40">
     <div class="max-w-7xl mx-auto text-center z-20 pb-10">
         <h1 class="text-5xl md:text-6xl font-bold mb-6">
             Discover Local
@@ -92,12 +59,12 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
             Connect with amazing local businesses in your community. Find services, read reviews, and discover exclusive deals.
         </p>
         
-        <div class="max-w-4xl mx-auto rounded-2xl p-6 bg-card/40 backdrop-blur-sm shadow-lg">
+        <div class="max-w-4xl liquid-glass mx-auto rounded-2xl p-6 shadow-lg">
             <form action="/search" method="GET" class="flex flex-col md:flex-row gap-4">
                 <div class="flex-1">
                     <div class="relative">
                         <input type="text" name="q" placeholder="What are you looking for?" 
-                               class="w-full pl-12 py-3 bg-card/40 backdrop-blur-sm border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                               class="w-full pl-12 py-3 bg-card/20 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                                <i data-lucide="search" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
                     </div>
                 </div>
@@ -105,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
                     <div class="relative">
                         
                         <input type="text" name="location" placeholder="Enter your ZIP" 
-                               class="w-full pl-12 py-3 bg-card/40 backdrop-blur-sm border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                               class="w-full pl-12 py-3 bg-card/20 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                                <i data-lucide="map-pin" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
                     </div>
                 </div>
@@ -127,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <?php foreach ($categories as $category): ?>
                     <a href="/search?category=<?php echo urlencode($category['slug']); ?>" 
-                       class="group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm rounded-xl p-6 text-center transition-all duration-200 hover:border-primary/50">
+                       class="group liquid-glass hover:bg-card/20 rounded-xl p-6 text-center transition-all duration-200 hover:border-primary/50">
                         <div class="w-16 h-16 bg-primary/10 group-hover:bg-primary/20 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-4 transition-colors">
                             <i data-lucide="<?php echo escapeHtml($category['icon']); ?>" class="w-8 h-8 text-primary"></i>
                         </div>
@@ -146,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
                         <h2 class="text-3xl font-bold text-foreground mb-4">Featured Deals</h2>
                         <p class="text-muted-foreground">Don't miss out on these amazing offers</p>
                     </div>
-                    <a href="/deals" class="px-4 py-2 bg-card/40 backdrop-blur-sm rounded-lg hover:bg-card/70 backdrop-blur-sm transition-all duration-200 transition-colors">
+                    <a href="/deals" class="px-4 py-2 liquid-glass rounded-lg hover:bg-card/20 transition-all duration-200 transition-colors">
                         View All
                         <i data-lucide="arrow-right" class="w-4 h-4 ml-2 inline"></i>
                     </a>
@@ -155,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
         
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <?php foreach ($deals as $deal): ?>
-                    <div class="group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm rounded-xl transition-all duration-200 hover:border-primary/50 overflow-hidden">
+                    <div class="group liquid-glass hover:bg-card/20 rounded-xl transition-all duration-200 hover:border-primary/50 overflow-hidden">
                         <div class="relative">
                             <img src="<?php echo escapeHtml($deal['business_image'] ?: 'fbla-waves.png'); ?>" 
                                  alt="<?php echo escapeHtml($deal['business_name']); ?>" 
@@ -192,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
                     <p class="text-muted-foreground">Discover highly rated businesses in your area</p>
                 </div>
                 
-                <a href="/discover" class="px-4 py-2 bg-card/40 backdrop-blur-sm rounded-lg hover:bg-card/70 backdrop-blur-sm transition-all duration-200 transition-colors">
+                <a href="/discover" class="px-4 py-2 liquid-glass rounded-lg hover:bg-card/20 transition-all duration-200 transition-colors">
                     View All
                     <i data-lucide="arrow-right" class="w-4 h-4 ml-2 inline"></i>
                 </a>
@@ -200,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <?php foreach ($featuredBusinesses as $business): ?>
-                <div class="group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm rounded-xl transition-all duration-200 hover:border-primary/50 overflow-hidden"
+                <div class="group liquid-glass hover:bg-card/20 rounded-xl transition-all duration-200 hover:border-primary/50 overflow-hidden"
                      onclick="window.location.href='/business?id=<?php echo urlencode($business['id']); ?>'">
                     <div class="flex h-56">
                         <div class="relative flex-shrink-0">
@@ -248,16 +215,14 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
     
     </div>
 </section>
-
-<script>
-
-
-</script>
-
+    </div>
+</div>
 
 <script>
   const PUBLIC_VAPID_KEY = <?php echo json_encode(PUBLIC_VAPID_KEY); ?>;
 </script>
+
+<?php renderLiquidGlassShader('/assets/purple.jpg', 1.2, 1.2); ?>
 
 <script>
 lucide.createIcons();if ('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/service-worker.js').then((registration) => {console.log('Service Worker registered successfully:', registration.scope);}).catch((error) => {console.log('Service Worker registration failed:', error);});});} async function subscribeUser() {console.log("subscribing user...");if (!('serviceWorker' in navigator) || !('PushManager' in window)) {console.log('Push notifications not supported');return;}try {const registration = await navigator.serviceWorker.ready;const subscription = await registration.pushManager.subscribe({userVisibleOnly: true,applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)});const response = await fetch('/api/subscribe.php', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({subscription: subscription.toJSON()})});if (response.ok) {console.log('Successfully subscribed to push notifications');}} catch (error) {console.error('Failed to subscribe:', error);}} function urlBase64ToUint8Array(base64String) {const padding = '='.repeat((4 - base64String.length % 4) % 4);const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');const rawData = window.atob(base64);const outputArray = new Uint8Array(rawData.length);for (let i = 0; i < rawData.length; ++i) {outputArray[i] = rawData.charCodeAt(i);}return outputArray;}let hasPrompted = false;function tryPromptNotification() {if (hasPrompted) return;hasPrompted = true;if (Notification.permission === "default") {Notification.requestPermission().then(permission => {if (permission === "granted") {subscribeUser();} else {console.log("User denied notifications");}});} else if (Notification.permission === "granted") {subscribeUser();}} document.addEventListener("click", tryPromptNotification);document.addEventListener("keydown", tryPromptNotification);document.addEventListener("scroll", tryPromptNotification);document.addEventListener("mousemove", tryPromptNotification);
