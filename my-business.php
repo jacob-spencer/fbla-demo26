@@ -1,5 +1,8 @@
 <?php
 require_once 'functions.php';
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 requireAuth();
 $user = getCurrentUser();
@@ -46,10 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formType = $_POST['form_type'] ?? '';
 
     if ($formType === 'business') {
-        $name = ($_POST['name']);
+        $name = sanitizeInput($_POST['name']);
         $description = sanitizeInput($_POST['description']);
         $categoryId = sanitizeInput($_POST['category_id']);
-        // $address = sanitizeInput($_POST['address']);
         $phone = sanitizeInput($_POST['phone']);
         $email = sanitizeInput($_POST['email']);
         $website = sanitizeInput($_POST['website']);
@@ -87,11 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bannerUrl = '/uploads/businesses/' . $filename;
         }
         
-        // Insert into database
         if ($name && $categoryId && $address) {
             try {
                 if ($business) {
-                    // Update existing business
                     $db->query("
                         UPDATE businesses 
                         SET name = ?, description = ?, category_id = ?, address = ?, phone = ?, 
@@ -103,11 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $email, $website, $lat, $long, $priceRange,
                         $imageUrl, $bannerUrl, $timezone, $business['id'], $user['id']
                     ]);
-
                     
                     $success = 'Business updated successfully!';
                 } else {
-                    // Create new business
                     $businessId = generateUuid();
                     $db->query("
                         INSERT INTO businesses (id, name, description, category_id, owner_id, address, phone, email, website, latitude, longitude, price_range, image_url, banner_image_url, created_at, updated_at, timezone) 
@@ -118,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $success = 'Business created successfully!';
                     
-                    // Refresh business data
                     $business = $db->fetch("
                         SELECT b.*, c.name as category_name 
                         FROM businesses b 
@@ -150,15 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     [$dealId, $business['id'], $title, $description, $discountType, $discountValue, $discountCode, $expiresAt]
                 );
-                header('Location: my-business.php');
+                header('Location: my-business.php?tab=deals&success=deal_created');
                 exit;
-                
-                // Shouldn't run this
-                $success = 'Deal created successfully!';
-                // Refresh deals list
-                $deals = $db->fetchAll("SELECT * FROM deals WHERE business_id = ? ORDER BY created_at DESC", [$business['id']]);
-                
-            }catch (Exception $e) {
+            } catch (Exception $e) {
                 $error = 'Failed to create deal. Please try again.';
             }
         } else {
@@ -198,569 +189,990 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Failed to update hours.";
         }
     }
-
 }
 
-// Handle deal deletion (thanks GPT for this one :)
+// Handle deal deletion
 if (isset($_GET['delete_deal']) && $business) {
     $dealId = $_GET['delete_deal'];
     $deal = $db->fetch("SELECT * FROM deals WHERE id = ? AND business_id = ?", [$dealId, $business['id']]);
     
     if ($deal) {
         $db->query("DELETE FROM deals WHERE id = ?", [$dealId]);
-        $success = "Deal deleted successfully.";
-        
-        header('Location: my-business.php');
+        header('Location: my-business.php?tab=deals&success=deal_deleted');
         exit;
-        
-        // Shouldn't run this
-        // Refresh deals list
-        $deals = $db->fetchAll("SELECT * FROM deals WHERE business_id = ? ORDER BY created_at DESC", [$business['id']]);
-    } else {
-        // This is totally unnecessary, it adds an ugly warning if there are no associated deals in the DB
-        // even if nothing is wrong. 
-        // $error = "No deals found for this business.";
     }
 }
 
-// Initialize page
+// Get active tab from URL
+$activeTab = $_GET['tab'] ?? 'overview';
+if (isset($_GET['success'])) {
+    if ($_GET['success'] === 'deal_created') {
+        $success = 'Deal created successfully!';
+    } elseif ($_GET['success'] === 'deal_deleted') {
+        $success = 'Deal deleted successfully!';
+    }
+}
+
 $pageTitle = 'My Business';
 $pageDescription = 'Manage your business profile and information';
 
 include 'includes/header.php';
 ?>
 
-<!-- yucky style -->
 <style>
-    .tab {
-      display: none; 
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease-in;
     }
-    .active {
-      display: block;
+    .tab-content.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .nav-tab {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    .nav-tab.active {
+        color: var(--accent);
+        font-weight: 600;
+    }
+    .nav-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--accent);
     }
 </style>
 
-<script>
-    function showMessage(e,t="info"){let a=document.getElementById("message-modal"),l=document.getElementById("message-text"),n=document.getElementById("message-icon"),s=document.getElementById("message-close");l.innerHTML=e,n.innerHTML="";let c="",i="";switch(t){case"success":c="check-circle",i="text-green-500";break;case"error":c="alert-circle",i="text-red-500";break;case"warning":c="alert-triangle",i="text-yellow-500";break;default:c="info",i="text-blue-500"}let d=document.createElement("i");d.setAttribute("data-lucide",c),d.className=`w-10 h-10 ${i} mb-2`,n.appendChild(d),a.classList.remove("hidden"),lucide.createIcons(),s.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}document.addEventListener("DOMContentLoaded",function(e){console.log("DOM fully loaded, getting lat/long"),console.log("Prompting user location"),fillLatLong()});
-</script>
-
 <main class="min-h-screen bg-background py-20">
-    <div id="message-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
-        <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
-            <button id="message-close" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xl font-bold">
-                &times; <!-- <<< this is dumb -->
-            </button>
-            <div id="message-icon" class="mb-4 flex justify-center"></div>
-            <p id="message-text" class="text-foreground text-sm"></p>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-24 right-4 z-50 hidden">
+        <div class="bg-card border border-border rounded-lg shadow-lg p-4 min-w-[300px] max-w-md">
+            <div class="flex items-start space-x-3">
+                <div id="toast-icon" class="flex-shrink-0"></div>
+                <div class="flex-1">
+                    <p id="toast-message" class="text-sm text-foreground"></p>
+                </div>
+                <button onclick="hideToast()" class="flex-shrink-0 text-muted-foreground hover:text-foreground">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- Confirm Modal -->
     <div id="confirm-modal" class="fixed inset-0 flex items-center backdrop-blur-lg justify-center bg-black/50 z-50 hidden">
-        <div class="bg-card rounded-xl p-6 max-w-sm w-full text-center relative shadow-lg">
-            <p id="confirm-text" class="text-foreground text-sm mb-6"></p>
-            <div class="flex justify-center space-x-4">
+        <div class="bg-card rounded-xl p-6 max-w-sm w-full shadow-xl border border-border">
+            <div class="mb-4">
+                <i data-lucide="alert-triangle" class="w-12 h-12 text-yellow-500 mx-auto mb-3"></i>
+                <p id="confirm-text" class="text-foreground text-center"></p>
+            </div>
+            <div class="flex justify-center space-x-3">
                 <button id="confirm-no" class="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                    No
+                    Cancel
                 </button>
                 <button id="confirm-yes" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg">
-                    Yes
+                    Delete
                 </button>
             </div>
         </div>
     </div>
     
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-foreground mb-2">My Business</h1>
-            <p class="text-muted-foreground">Manage your business profile and information</p>
+            <h1 class="text-4xl geist text-foreground mb-2">My Business</h1>
+            <p class="text-muted-foreground">Manage your business profile, deals, and settings</p>
         </div>
 
         <?php if ($error): ?>
-        <div class="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
-            <div class="flex items-center">
-                <i data-lucide="alert-circle" class="w-5 h-5 text-destructive mr-2"></i>
-                <span class="text-destructive"><?php echo escapeHtml($error); ?></span>
-            </div>
+        <div class="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6 flex items-start space-x-3">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-destructive flex-shrink-0 mt-0.5"></i>
+            <span class="text-destructive"><?php echo escapeHtml($error); ?></span>
         </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
-        <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6">
-            <div class="flex items-center">
-                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2"></i>
-                <span class="text-green-500"><?php echo escapeHtml($success); ?></span>
+        <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6 flex items-start space-x-3">
+            <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
+            <span class="text-green-500"><?php echo escapeHtml($success); ?></span>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!$business): ?>
+        <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-6 mb-6">
+            <div class="flex items-start space-x-3">
+                <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-500 flex-shrink-0"></i>
+                <div>
+                    <h3 class="text-lg font-semibold text-foreground mb-1">No Business Profile Found</h3>
+                    <p class="text-muted-foreground">Create your business profile to get started with managing deals, reviews, and more.</p>
+                </div>
             </div>
         </div>
         <?php endif; ?>
 
-        <!-- Toolbar -->
-        <div class="bg-card rounded-xl border border-border p-6 mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <a onclick="openTab('overview')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="menu" class="w-4 h-4 mr-2 inline"></i>
-                        Overview
-                    </a>
-                    <a onclick="openTab('business-setting')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="settings" class="w-4 h-4 mr-2 inline"></i>
-                        Business Settings
-                    </a>
-                    <a onclick="openTab('deals')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="circle-dollar-sign" class="w-4 h-4 mr-2 inline"></i>
-                        Deals
-                    </a>
-                    <a onclick="openTab('reviews')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="star" class="w-4 h-4 mr-2 inline"></i>
-                        Reviews
-                    </a>
-                    <a onclick="openTab('hours')" target="_blank" 
-                       class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2">
-                        <i data-lucide="Clock" class="w-4 h-4 mr-2 inline"></i>
-                        Hours
-                    </a>
-                </div>
+        <!-- Navigation Tabs -->
+        <div class="bg-card rounded-xl border border-border mb-6 overflow-hidden">
+            <div class="flex">
+                <button onclick="switchTab('overview')" class="nav-tab flex geist items-center space-x-2 px-6 py-4 text-muted-foreground hover:bg-muted/50 transition-colors whitespace-nowrap <?php echo $activeTab === 'overview' ? 'active' : ''; ?>">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Overview</span>
+                </button>
+                <button onclick="switchTab('settings')" class="nav-tab flex geist items-center space-x-2 px-6 py-4 text-muted-foreground hover:bg-muted/50 transition-colors whitespace-nowrap <?php echo $activeTab === 'settings' ? 'active' : ''; ?>">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Settings</span>
+                </button>
+                <button onclick="switchTab('deals')" class="nav-tab flex geist items-center space-x-2 px-6 py-4 text-muted-foreground hover:bg-muted/50 transition-colors whitespace-nowrap <?php echo $activeTab === 'deals' ? 'active' : ''; ?>">
+                    <i data-lucide="tag" class="w-4 h-4"></i>
+                    <span>Deals</span>
+                    <?php if (!empty($deals)): ?>
+                    <span class="bg-accent text-black text-xs font-semibold px-2 py-0.5 rounded-full"><?php echo count($deals); ?></span>
+                    <?php endif; ?>
+                </button>
+                <button onclick="switchTab('hours')" class="nav-tab flex geist items-center space-x-2 px-6 py-4 text-muted-foreground hover:bg-muted/50 transition-colors whitespace-nowrap <?php echo $activeTab === 'hours' ? 'active' : ''; ?>">
+                    <i data-lucide="clock" class="w-4 h-4"></i>
+                    <span>Hours</span>
+                </button>
+                <button onclick="switchTab('reviews')" class="nav-tab flex geist items-center space-x-2 px-6 py-4 text-muted-foreground hover:bg-muted/50 transition-colors whitespace-nowrap <?php echo $activeTab === 'reviews' ? 'active' : ''; ?>">
+                    <i data-lucide="star" class="w-4 h-4"></i>
+                    <span>Reviews</span>
+                </button>
             </div>
         </div>
-        
-        <?php if ($business): ?>
-        <!-- Business Preview -->
-        <div id="overview" class="tab">
-            <div class="bg-card rounded-xl border border-border p-6 mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-foreground">Business Preview</h2>
-                    <div>
-                        <a href="/analytics?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
-                           class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                            <i data-lucide="external-link" class="w-4 h-4 mr-2 inline"></i>
-                            View Analytics
-                        </a>
-                        <a href="/business?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
-                           class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                            <i data-lucide="external-link" class="w-4 h-4 mr-2 inline"></i>
-                            View Public Page
-                        </a>
+
+        <!-- Overview Tab -->
+        <div id="tab-overview" class="tab-content <?php echo $activeTab === 'overview' ? 'active' : ''; ?>">
+            <?php if ($business): ?>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Stats Cards -->
+                <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-muted-foreground text-sm">Average Rating</span>
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-500"></i>
                     </div>
+                    <p class="text-3xl font-bold text-foreground"><?php echo number_format($business['average_rating'] ?: 0, 1); ?></p>
+                    <p class="text-xs text-muted-foreground mt-1"><?php echo $business['total_reviews']; ?> reviews</p>
                 </div>
-                <div class="flex items-start space-x-4">
-                    <div class="w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                        <?php if (!empty($business['image_url'])): ?>
-                            <img src="<?php echo escapeHtml($business['image_url']); ?>" alt="Thumbnail" class="object-cover w-full h-full">
-                        <?php else: ?>
-                            <i data-lucide="building-2" class="w-8 h-8 text-muted-foreground"></i>
+                
+                <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-muted-foreground text-sm">Active Deals</span>
+                        <i data-lucide="tag" class="w-5 h-5 text-green-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-foreground"><?php echo count($deals); ?></p>
+                    <p class="text-xs text-muted-foreground mt-1">Currently active</p>
+                </div>
+                
+                <div class="bg-card rounded-xl border border-border p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-muted-foreground text-sm">Price Range</span>
+                        <i data-lucide="dollar-sign" class="w-5 h-5 text-blue-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-foreground"><?php echo escapeHtml($business['price_range']); ?></p>
+                    <p class="text-xs text-muted-foreground mt-1">Average cost</p>
+                </div>
+            </div>
+
+            <!-- Business Preview -->
+            <div class="bg-card rounded-xl border border-border overflow-hidden">
+                <?php if (!empty($business['banner_image_url'])): ?>
+                <div class="h-48 bg-muted overflow-hidden">
+                    <img src="<?php echo escapeHtml($business['banner_image_url']); ?>" alt="Banner" class="w-full h-full object-cover">
+                </div>
+                <?php endif; ?>
+                
+                <div class="p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                                <?php if (!empty($business['image_url'])): ?>
+                                    <img src="<?php echo escapeHtml($business['image_url']); ?>" alt="Logo" class="object-cover w-full h-full">
+                                <?php else: ?>
+                                    <i data-lucide="building-2" class="w-10 h-10 text-muted-foreground"></i>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-2xl geist text-foreground mb-1"><?php echo escapeHtml($business['name']); ?></h3>
+                                <p class="text-muted-foreground mb-2"><?php echo escapeHtml($business['category_name']); ?></p>
+                                <div class="flex items-center space-x-4 text-sm">
+                                    <div class="flex items-center space-x-1">
+                                        <?php echo renderStars(round($business['average_rating'] ?: 0)); ?>
+                                        <span class="text-foreground font-medium"><?php echo number_format($business['average_rating'] ?: 0, 1); ?></span>
+                                    </div>
+                                    <span class="text-muted-foreground"><?php echo $business['total_reviews']; ?> reviews</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <a href="/analytics?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
+                               class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors flex items-center space-x-2">
+                                <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                                <span>Analytics</span>
+                            </a>
+                            <a href="/business?id=<?php echo urlencode($business['id']); ?>" target="_blank" 
+                               class="px-4 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors flex items-center space-x-2">
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                                <span>View Public Page</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <?php if (!empty($business['description'])): ?>
+                    <p class="text-muted-foreground mb-4"><?php echo escapeHtml($business['description']); ?></p>
+                    <?php endif; ?>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">
+                        <?php if (!empty($business['address'])): ?>
+                        <div class="flex items-start space-x-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-muted-foreground mt-0.5"></i>
+                            <span class="text-sm text-foreground"><?php echo escapeHtml($business['address']); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($business['phone'])): ?>
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="phone" class="w-4 h-4 text-muted-foreground"></i>
+                            <span class="text-sm text-foreground"><?php echo escapeHtml($business['phone']); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($business['email'])): ?>
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="mail" class="w-4 h-4 text-muted-foreground"></i>
+                            <span class="text-sm text-foreground"><?php echo escapeHtml($business['email']); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($business['website'])): ?>
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="globe" class="w-4 h-4 text-muted-foreground"></i>
+                            <a href="<?php echo escapeHtml($business['website']); ?>" target="_blank" class="text-sm text-accent hover:underline"><?php echo escapeHtml($business['website']); ?></a>
+                        </div>
                         <?php endif; ?>
                     </div>
-    
-                    <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-foreground mb-1"><?php echo escapeHtml($business['name']); ?></h3>
-                        <p class="text-muted-foreground mb-2"><?php echo escapeHtml($business['category_name']); ?></p>
-                        <div class="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div class="flex items-center space-x-1">
-                                <?php echo renderStars(round($business['average_rating'] ?: 0)); ?>
-                                <span><?php echo number_format($business['average_rating'] ?: 0, 1); ?></span>
-                            </div>
-                            <span><?php echo $business['total_reviews']; ?> reviews</span>
-                            <span><?php echo escapeHtml($business['price_range']); ?></span>
-                        </div>
-                    </div>
                 </div>
             </div>
+            <?php else: ?>
+            <div class="bg-card rounded-xl border border-border p-12 text-center">
+                <i data-lucide="building-2" class="w-16 h-16 text-muted-foreground mx-auto mb-4"></i>
+                <h3 class="text-xl font-semibold text-foreground mb-2">Create Your Business Profile</h3>
+                <p class="text-muted-foreground mb-6">Get started by setting up your business information</p>
+                <button onclick="switchTab('settings')" class="px-6 py-3 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors">
+                    Create Business Profile
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
-        <?php else: ?>
-        <script>
-            showMessage("No business found. <br>Try creating one in the <strong>'Business Settings'</strong> menu.", "warning");
-            openTab('business-setting');
-        </script>
-        <?php endif; ?>
 
-        <div id="business-setting" class="tab">
-            <!-- Business Form -->
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-content <?php echo $activeTab === 'settings' ? 'active' : ''; ?>">
             <div class="bg-card rounded-xl border border-border p-6">
-                <h2 class="text-xl font-semibold text-foreground mb-6">
-                    <?php echo $business ? 'Edit Business Information' : 'Create Your Business Profile'; ?>
+                <h2 class="text-2xl geist text-foreground mb-6">
+                    <?php echo $business ? 'Business Settings' : 'Create Your Business'; ?>
                 </h2>
                 
-                <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                <form method="POST" enctype="multipart/form-data" class="space-y-8">
                     <input type="hidden" name="form_type" value="business">
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="name" class="block text-sm font-medium text-foreground mb-2">Business Name *</label>
-                            <input type="text" id="name" name="name" required 
-                                   value="<?php echo escapeHtml($business['name'] ?? $_POST['name'] ?? ''); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                    <!-- Basic Information -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                            <i data-lucide="info" class="w-5 h-5 mr-2"></i>
+                            Basic Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-foreground mb-2">Business Name *</label>
+                                <input type="text" id="name" name="name" required 
+                                       value="<?php echo escapeHtml($business['name'] ?? ''); ?>"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                       placeholder="Enter business name">
+                            </div>
+                            
+                            <div>
+                                <label for="category_id" class="block text-sm font-medium text-foreground mb-2">Category *</label>
+                                <select id="category_id" name="category_id" required 
+                                        class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="">Select a category</option>
+                                    <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo escapeHtml($category['id']); ?>" 
+                                            <?php echo ($business['category_id'] ?? '') === $category['id'] ? 'selected' : ''; ?>>
+                                        <?php echo escapeHtml($category['name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
                         
-                        <div>
-                            <label for="category_id" class="block text-sm font-medium text-foreground mb-2">Category *</label>
-                            <select id="category_id" name="category_id" required 
-                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                                <option value="">Select a category</option>
-                                <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo escapeHtml($category['id']); ?>" 
-                                        <?php echo ($business['category_id'] ?? $_POST['category_id'] ?? '') === $category['id'] ? 'selected' : ''; ?>>
-                                    <?php echo escapeHtml($category['name']); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-    
-                    <div>
-                        <label for="description" class="block text-sm font-medium text-foreground mb-2">Description</label>
-                        <textarea id="description" name="description" rows="4" 
-                                  placeholder="Tell customers about your business..."
-                                  class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"><?php echo escapeHtml($business['description'] ?? $_POST['description'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-foreground mb-2">Business Thumbnail</label>
-                        <div id="thumbnail-dropzone" 
-                             class="border-2 border-dashed border-border rounded-lg px-4 py-8 flex flex-col items-center justify-center cursor-pointer bg-input text-foreground hover:border-primary transition-colors relative">
-                            <span id="thumbnail-label">Drag & drop an image here, or click to browse</span>
-                            <input type="file" id="thumbnail" name="thumbnail" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                        </div>
-                        <div class="mt-2">
-                            <img id="thumbnail-preview" src="<?php echo escapeHtml($business['image_url'] ?? ''); ?>" alt="Thumbnail Preview" class="hidden w-32 h-32 object-cover rounded-lg">
+                        <div class="mt-4">
+                            <label for="description" class="block text-sm font-medium text-foreground mb-2">Description</label>
+                            <textarea id="description" name="description" rows="4" 
+                                      placeholder="Describe your business..."
+                                      class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"><?php echo escapeHtml($business['description'] ?? ''); ?></textarea>
                         </div>
                     </div>
                     
+                    <!-- Images -->
                     <div>
-                        <label class="block text-sm font-medium text-foreground mb-2">Business Banner</label>
-                        <div id="banner-dropzone" 
-                             class="border-2 border-dashed border-border rounded-lg px-4 py-8 flex flex-col items-center justify-center cursor-pointer bg-input text-foreground hover:border-primary transition-colors relative">
-                            <span id="banner-label">Drag & drop an image here, or click to browse</span>
-                            <input type="file" id="banner" name="banner" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                            <i data-lucide="image" class="w-5 h-5 mr-2"></i>
+                            Images
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Business Logo</label>
+                                <div id="thumbnail-dropzone" 
+                                     class="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-input hover:border-primary transition-colors relative min-h-[150px]">
+                                    <i data-lucide="upload" class="w-8 h-8 text-muted-foreground mb-2"></i>
+                                    <span id="thumbnail-label" class="text-sm text-muted-foreground text-center">Drop image or click to upload</span>
+                                    <input type="file" id="thumbnail" name="thumbnail" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                </div>
+                                <?php if (!empty($business['image_url'])): ?>
+                                <div class="mt-3">
+                                    <img id="thumbnail-preview" src="<?php echo escapeHtml($business['image_url']); ?>" alt="Current Logo" class="w-32 h-32 object-cover rounded-lg border border-border">
+                                </div>
+                                <?php else: ?>
+                                <div class="mt-3 hidden">
+                                    <img id="thumbnail-preview" src="" alt="Preview" class="w-32 h-32 object-cover rounded-lg border border-border">
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Business Banner</label>
+                                <div id="banner-dropzone" 
+                                     class="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-input hover:border-primary transition-colors relative min-h-[150px]">
+                                    <i data-lucide="upload" class="w-8 h-8 text-muted-foreground mb-2"></i>
+                                    <span id="banner-label" class="text-sm text-muted-foreground text-center">Drop image or click to upload</span>
+                                    <input type="file" id="banner" name="banner" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                </div>
+                                <?php if (!empty($business['banner_image_url'])): ?>
+                                <div class="mt-3">
+                                    <img id="banner-preview" src="<?php echo escapeHtml($business['banner_image_url']); ?>" alt="Current Banner" class="w-full h-32 object-cover rounded-lg border border-border">
+                                </div>
+                                <?php else: ?>
+                                <div class="mt-3 hidden">
+                                    <img id="banner-preview" src="" alt="Preview" class="w-full h-32 object-cover rounded-lg border border-border">
+                                </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        <div class="mt-2">
-                            <img id="banner-preview" src="<?php echo escapeHtml($business['banner_image_url'] ?? ''); ?>" alt="Banner Preview" class="hidden w-full h-40 object-cover rounded-lg">
-                        </div>
-                    </div>
-    
-                    <div>
-                        <label for="street" class="block text-sm font-medium text-foreground mb-2">Street Address *</label>
-                        <input type="text" id="street" name="street"  
-                                  placeholder="Enter your business address"
-                                  value="<?php echo escapeHtml($street); ?>"
-                                  class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                     </div>
                     
-                    <!-- hidden values -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5" style="display: none;">
-                        <div>
-                            <label for="lat" class="block text-sm font-medium text-foreground mb-2">Latitude *</label>
-                            <input type="text" id="lat" name="lat"
-                                   value="<?php echo escapeHtml($business['latitude'] ?? $_POST['lat'] ?? '0'); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                    <!-- Location -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                            <i data-lucide="map-pin" class="w-5 h-5 mr-2"></i>
+                            Location
+                        </h3>
+                        
+                        <div class="mb-4">
+                            <label for="street" class="block text-sm font-medium text-foreground mb-2">Street Address *</label>
+                            <input type="text" id="street" name="street" required
+                                   placeholder="123 Main Street"
+                                   value="<?php echo escapeHtml($street); ?>"
+                                   class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
-                        <div>
-                            <label for="long" class="block text-sm font-medium text-foreground mb-2">Longitude *</label>
-                            <input type="text" id="long" name="long"
-                                   value="<?php echo escapeHtml($business['longitude'] ?? $_POST['long'] ?? '0'); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label for="city" class="block text-sm font-medium text-foreground mb-2">City *</label>
+                                <input type="text" id="city" name="city" required
+                                       value="<?php echo escapeHtml($city); ?>"
+                                       placeholder="City"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div>
+                                <label for="state" class="block text-sm font-medium text-foreground mb-2">State *</label>
+                                <input type="text" id="state" name="state" required
+                                       value="<?php echo escapeHtml($state); ?>"
+                                       placeholder="State"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div>
+                                <label for="zip" class="block text-sm font-medium text-foreground mb-2">ZIP Code *</label>
+                                <input type="text" id="zip" name="zip" required
+                                       value="<?php echo escapeHtml($zip); ?>"
+                                       placeholder="12345"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="country" class="block text-sm font-medium text-foreground mb-2">Country *</label>
+                                <input type="text" id="country" name="country" required
+                                       value="<?php echo escapeHtml($country); ?>"
+                                       placeholder="Country"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" onclick="fillLocation()" 
+                                        class="w-full px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors flex items-center justify-center space-x-2">
+                                    <i data-lucide="navigation" class="w-4 h-4"></i>
+                                    <span>Auto-detect Location</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden lat/long fields -->
+                        <input type="hidden" id="lat" name="lat" value="<?php echo escapeHtml($business['latitude'] ?? '0'); ?>">
+                        <input type="hidden" id="long" name="long" value="<?php echo escapeHtml($business['longitude'] ?? '0'); ?>">
+                    </div>
+                    
+                    <!-- Contact Information -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                            <i data-lucide="phone" class="w-5 h-5 mr-2"></i>
+                            Contact Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-foreground mb-2">Phone</label>
+                                <input type="tel" id="phone" name="phone" 
+                                       value="<?php echo escapeHtml($business['phone'] ?? ''); ?>"
+                                       placeholder="(555) 123-4567"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-foreground mb-2">Email</label>
+                                <input type="email" id="email" name="email" 
+                                       value="<?php echo escapeHtml($business['email'] ?? ''); ?>"
+                                       placeholder="contact@business.com"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            
+                            <div>
+                                <label for="website" class="block text-sm font-medium text-foreground mb-2">Website</label>
+                                <input type="url" id="website" name="website" 
+                                       value="<?php echo escapeHtml($business['website'] ?? ''); ?>"
+                                       placeholder="https://www.business.com"
+                                       class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            
+                            <div>
+                                <label for="price_range" class="block text-sm font-medium text-foreground mb-2">Price Range</label>
+                                <select id="price_range" name="price_range"
+                                    class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                                
+                                    <option value="$" <?php echo (($business['price_range'] ?? '') === '$') ? 'selected' : ''; ?>>
+                                        $ - Budget
+                                    </option>
+                                
+                                    <option value="$$" <?php echo (($business['price_range'] ?? '') === '$$') ? 'selected' : ''; ?>>
+                                        $$ - Moderate
+                                    </option>
+                                
+                                    <option value="$$$" <?php echo (($business['price_range'] ?? '') === '$$$') ? 'selected' : ''; ?>>
+                                        $$$ - Expensive
+                                    </option>
+                                
+                                    <option value="$$$$" <?php echo (($business['price_range'] ?? '') === '$$$$') ? 'selected' : ''; ?>>
+                                        $$$$ - Very Expensive
+                                    </option>
+                                
+                                </select>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div>
-                            <label for="city" class="block text-sm font-medium text-foreground mb-2">City *</label>
-                            <input type="text" id="city" name="city" required
-                                   value="<?php echo escapeHtml($city); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label for="state" class="block text-sm font-medium text-foreground mb-2">State *</label>
-                            <input type="text" id="state" name="state" required
-                                   value="<?php echo escapeHtml($state); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label for="zip" class="block text-sm font-medium text-foreground mb-2">ZIP *</label>
-                            <input type="text" id="zip" name="zip" required
-                                   value="<?php echo escapeHtml($zip); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label for="country" class="block text-sm font-medium text-foreground mb-2">Country *</label>
-                            <input type="text" id="country" name="country" required
-                                   value="<?php echo escapeHtml($country); ?>"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label for="country" class="block text-sm font-medium text-foreground mb-2">&nbsp;</label>
-                            <button type="button" onclick="fillLocation()" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                                Autofill Location
-                            </button>
-                        </div>
-                    </div>
-                    </div>
-    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="phone" class="block text-sm font-medium text-foreground mb-2">Phone</label>
-                            <input type="tel" id="phone" name="phone" 
-                                   value="<?php echo escapeHtml($business['phone'] ?? $_POST['phone'] ?? ''); ?>"
-                                   placeholder="(555) 123-4567"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                        
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-foreground mb-2">Email</label>
-                            <input type="email" id="email" name="email" 
-                                   value="<?php echo escapeHtml($business['email'] ?? $_POST['email'] ?? ''); ?>"
-                                   placeholder="contact@business.com"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                    </div>
-    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="website" class="block text-sm font-medium text-foreground mb-2">Website</label>
-                            <input type="url" id="website" name="website" 
-                                   value="<?php echo escapeHtml($business['website'] ?? $_POST['website'] ?? ''); ?>"
-                                   placeholder="https://www.business.com"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                        </div>
-                        
-                        <div>
-                            <label for="price_range" class="block text-sm font-medium text-foreground mb-2">Price Range</label>
-                            <select id="price_range" name="price_range" 
-                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                                <option value="$" <?php echo ($business['price_range'] ?? $_POST['price_range'] ?? '') === '$' ? 'selected' : ''; ?>>$ - Budget</option>
-                                <option value="$$" <?php echo ($business['price_range'] ?? $_POST['price_range'] ?? '$$') === '$$' ? 'selected' : ''; ?>>$$ - Moderate</option>
-                                <option value="$$$" <?php echo ($business['price_range'] ?? $_POST['price_range'] ?? '') === '$$$' ? 'selected' : ''; ?>>$$$ - Expensive</option>
-                                <option value="$$$$" <?php echo ($business['price_range'] ?? $_POST['price_range'] ?? '') === '$$$$' ? 'selected' : ''; ?>>$$$$ - Very Expensive</option>
-                            </select>
-                        </div>
-                    </div>
-    
-                    <div class="flex justify-end space-x-4">
-                        <a href="/" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-border">
+                        <a href="/" class="px-6 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors">
                             Cancel
                         </a>
-                        <button type="submit" class="px-6 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors">
-                            <?php echo $business ? 'Update Business' : 'Create Business'; ?>
+                        <button type="submit" class="px-6 py-2.5 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors flex items-center space-x-2">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span><?php echo $business ? 'Save Changes' : 'Create Business'; ?></span>
                         </button>
                     </div>
                 </form>
             </div>
         </div>
-        
-        <?php if($business): ?>
-        <div id="deals" class="tab">
-            <!-- Deal Form -->
-            <div class="bg-card rounded-xl border border-border p-6">
-                <h2 class="text-xl font-semibold text-foreground mb-6">
-                    <?php echo $business ? 'Add a Deal' : 'Add a Deal'; ?>
+
+        <!-- Deals Tab -->
+        <div id="tab-deals" class="tab-content <?php echo $activeTab === 'deals' ? 'active' : ''; ?>">
+            <?php if ($business): ?>
+            <!-- Create Deal Form -->
+            <div class="bg-card rounded-xl border border-border p-6 mb-6">
+                <h2 class="text-xl geist text-foreground mb-6 flex items-center">
+                    <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+                    Create New Deal
                 </h2>
                 
                 <form method="POST" class="space-y-6">
                     <input type="hidden" name="form_type" value="deal">
-                
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="deal_title" class="block text-sm font-medium text-foreground mb-2">Deal Title *</label>
                             <input type="text" id="deal_title" name="deal_title" required
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                                   placeholder="e.g., Summer Sale"
+                                   class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
-                
+                        
                         <div>
                             <label for="discount_type" class="block text-sm font-medium text-foreground mb-2">Discount Type *</label>
                             <select name="discount_type" id="discount_type" required
-                                    class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                                    class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                                 <option value="percentage">Percentage (%)</option>
                                 <option value="fixed">Fixed Amount ($)</option>
                             </select>
                         </div>
                     </div>
-                
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label for="discount_value" class="block text-sm font-medium text-foreground mb-2">Discount Value *</label>
                             <input type="number" name="discount_value" id="discount_value" required step="0.01" min="0"
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                                   placeholder="10"
+                                   class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
-                
+                        
                         <div>
                             <label for="discount_code" class="block text-sm font-medium text-foreground mb-2">Discount Code *</label>
                             <input type="text" name="discount_code" id="discount_code" required
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                                   placeholder="SUMMER2024"
+                                   class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
                         <div>
                             <label for="expires_at" class="block text-sm font-medium text-foreground mb-2">Expires At *</label>
                             <input type="date" name="expires_at" id="expires_at" required
-                                   class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                                   class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
                         </div>
                     </div>
-                
+                    
                     <div>
                         <label for="deal_description" class="block text-sm font-medium text-foreground mb-2">Description</label>
                         <textarea name="deal_description" id="deal_description" rows="3"
-                                  class="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"></textarea>
+                                  placeholder="Describe your deal..."
+                                  class="w-full px-4 py-2.5 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
                     </div>
-                
-                    <div class="flex justify-end space-x-4">
-                        <button type="submit" class="px-6 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg">
-                            Create Deal
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2.5 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors flex items-center space-x-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Create Deal</span>
                         </button>
                     </div>
                 </form>
-            </div> 
-            
-            <div class="p-3 mb-3">
-                <!--spacer :)-->
             </div>
             
+            <!-- Existing Deals -->
             <div class="bg-card rounded-xl border border-border p-6">
-                <h2 class="text-xl font-semibold text-foreground mb-6">
-                    Existing Deals
-                </h2>
-                <?php if (empty($deals)): ?>
-                    Create a deal to get started.
-                <?php endif; ?>
+                <h2 class="text-xl geist text-foreground mb-6">Active Deals</h2>
                 
-                <?php if (!empty($deals)): ?>
-                    <div class="mt-8">
-                        <div class="space-y-4">
-                            <?php foreach ($deals as $deal): ?>
-                                <div class="p-4 border border-border rounded-lg bg-muted flex justify-between items-center">
-                                    <div>
-                                        <h4 class="text-md font-semibold text-foreground"><?php echo escapeHtml($deal['title']); ?></h4>
-                                        <p class="text-muted-foreground text-sm">
-                                            <?php echo escapeHtml($deal['description']); ?>
-                                        </p>
-                                        <p class="text-sm mt-1">
-                                            <strong>Type:</strong> <?php echo escapeHtml($deal['discount_type']); ?> |
-                                            <strong>Value:</strong> <?php echo escapeHtml($deal['discount_value']); ?> |
-                                            <strong>Expires:</strong> <?php echo escapeHtml($deal['expires_at']); ?>
-                                        </p>
-                                    </div>
-                                    <div class="space-x-2">
-                                        <a href="/edit_deal?id=<?php echo urlencode($deal['id']); ?>"
-                                           class="px-6 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg">Edit</a>
-                                        <a href="?delete_deal=<?php echo urlencode($deal['id']); ?>"
-                                           onclick="event.preventDefault(); handleDeleteDeal(this.href);"
-                                           class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg">
-                                           Delete
-                                        </a>
+                <?php if (empty($deals)): ?>
+                <div class="text-center py-12">
+                    <i data-lucide="tag" class="w-16 h-16 text-muted-foreground mx-auto mb-4"></i>
+                    <h3 class="text-lg geist text-foreground mb-2">No deals yet</h3>
+                    <p class="text-muted-foreground">Create your first deal to attract more customers</p>
+                </div>
+                <?php else: ?>
+                <div class="space-y-4">
+                    <?php foreach ($deals as $deal): ?>
+                    <div class="p-5 border border-border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h4 class="text-lg font-semibold text-foreground"><?php echo escapeHtml($deal['title']); ?></h4>
+                                    <div class="flex items-center space-x-2 ml-4">
+                                        <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-semibold rounded-full">
+                                            <?php 
+                                                if ($deal['discount_type'] === 'percentage') {
+                                                    echo escapeHtml($deal['discount_value']) . '% OFF';
+                                                } else {
+                                                    echo '$' . escapeHtml($deal['discount_value']) . ' OFF';
+                                                }
+                                                ?>
+                                        </span>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
+                                
+                                <?php if (!empty($deal['description'])): ?>
+                                <p class="text-muted-foreground text-sm mb-3"><?php echo escapeHtml($deal['description']); ?></p>
+                                <?php endif; ?>
+                                
+                                <div class="flex flex-wrap gap-4 text-sm">
+                                    <div class="flex items-center space-x-1.5">
+                                        <i data-lucide="ticket" class="w-4 h-4 text-muted-foreground"></i>
+                                        <span class="text-foreground font-mono"><?php echo escapeHtml($deal['discount_code']); ?></span>
+                                    </div>
+                                    <div class="flex items-center space-x-1.5">
+                                        <i data-lucide="calendar" class="w-4 h-4 text-muted-foreground"></i>
+                                        <span class="text-muted-foreground">Expires: <?php echo date('M d, Y', strtotime($deal['expires_at'])); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2 ml-4">
+                                <a href="/edit_deal?id=<?php echo urlencode($deal['id']); ?>"
+                                   class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors flex items-center space-x-1.5">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <button onclick="handleDeleteDeal('<?php echo urlencode($deal['id']); ?>')"
+                                        class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors flex items-center space-x-1.5">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    <span>Delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                </div>
                 <?php endif; ?>
             </div>
-            
-        </div>
-        <?php else: ?>
-        <script>
-            showMessage("No business found. <br>You need to create one before setting deals.", "warning");
-            openTab('business-setting');
-        </script>
-        <?php endif; ?>
-        
-        <?php if($business): ?>
-        <div id="reviews" class="tab">
-            <!-- Review Form -->
-            <div class="bg-card rounded-xl border border-border p-6">
-                <h2 class="text-xl font-semibold text-foreground mb-6">
-                    <?php echo $business ? 'Reviews' : 'Reviews'; ?>
-                </h2>
-                
-                <p class="text-foreground mb-2"> Feature not implemented!</p>
-    
+            <?php else: ?>
+            <div class="bg-card rounded-xl border border-border p-12 text-center">
+                <i data-lucide="alert-circle" class="w-16 h-16 text-yellow-500 mx-auto mb-4"></i>
+                <h3 class="text-xl font-semibold text-foreground mb-2">Business Profile Required</h3>
+                <p class="text-muted-foreground mb-6">Create your business profile before adding deals</p>
+                <button onclick="switchTab('settings')" class="px-6 py-3 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors">
+                    Go to Settings
+                </button>
             </div>
+            <?php endif; ?>
         </div>
-        <?php else: ?>
-        <script>
-            showMessage("No business found. <br>You need to create one before viewing reviews.", "warning");
-            openTab('business-setting');
-        </script>
-        <?php endif; ?>
-        
-        <div id="hours" class="tab">
-            <!-- Hours Form -->
+
+        <!-- Hours Tab -->
+        <div id="tab-hours" class="tab-content <?php echo $activeTab === 'hours' ? 'active' : ''; ?>">
+            <?php if ($business): ?>
             <div class="bg-card rounded-xl border border-border p-6">
-                <h2 class="text-xl font-semibold text-foreground mb-6">
-                    <?php echo $business ? 'Set Hours' : 'Set Hours'; ?>
+                <h2 class="text-xl geist text-foreground mb-6 flex items-center">
+                    <i data-lucide="clock" class="w-5 h-5 mr-2"></i>
+                    Business Hours
                 </h2>
                 
-                <form method="POST" class="space-y-6">
+                <form method="POST" class="space-y-4">
                     <input type="hidden" name="form_type" value="hours">
-                
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <?php
-                        $days = ['Monday'=>'m','Tuesday'=>'tu','Wednesday'=>'w','Thursday'=>'th','Friday'=>'f','Saturday'=>'sa','Sunday'=>'su'];
-                        $times = [];
-                        for ($h=0;$h<24;$h++) {
-                            for ($m=0;$m<60;$m+=30) {
-                                $times[] = sprintf('%02d:%02d', $h, $m);
-                            }
+                    
+                    <?php
+                    $days = ['Monday'=>'m','Tuesday'=>'tu','Wednesday'=>'w','Thursday'=>'th','Friday'=>'f','Saturday'=>'sa','Sunday'=>'su'];
+                    $times = [];
+                    for ($h=0;$h<24;$h++) {
+                        for ($m=0;$m<60;$m+=30) {
+                            $times[] = sprintf('%02d:%02d', $h, $m);
                         }
-                        foreach ($days as $day => $prefix): ?>
-                        <div class="flex flex-col space-y-2">
-                            <div class="flex items-center justify-between">
-                                <label class="block text-sm font-medium text-foreground"><?php echo $day; ?> * 
-                                    <label class="flex items-center gap-2 cursor-pointer">
+                    }
+                    
+                    foreach ($days as $day => $prefix): ?>
+                    <div class="p-4 bg-muted/30 rounded-lg">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+                            <div class="flex items-center justify-between md:w-48">
+                                <label class="text-sm font-medium text-foreground"><?php echo $day; ?></label>
+                                <div class="flex items-center space-x-2">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
                                         <input type="checkbox" id="<?php echo $prefix; ?>-closed-checker" name="<?php echo $prefix; ?>-closed-checker"
-                                          class="appearance-none h-5 w-5 border-2 border-border rounded-md checked:bg-primary checked:border-primary
-                                                 transition duration-200 relative cursor-pointer
-                                                 checked:before:content-['✓'] checked:before:absolute checked:before:text-white checked:before:text-sm checked:before:inset-0 checked:before:flex checked:before:items-center checked:before:justify-center" />
-                                        <span class="text-foreground">Closed</span>
+                                               class="w-4 h-4 border-2 border-border rounded checked:bg-accent checked:border-accent transition">
+                                        <span class="text-sm text-muted-foreground">Closed</span>
                                     </label>
-                                
-                                </label>
-                                <button type="button" class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors mr-2" onclick="setAllHours('<?php echo $prefix; ?>')">&raquo;</button>
+                                </div>
                             </div>
-                            <div class="flex space-x-2">
-                                <select id="<?php echo $prefix; ?>-opening" name="<?php echo $prefix; ?>-opening" required
-                                        class="w-1/2 px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                            
+                            <div class="flex items-center space-x-2 flex-1 md:max-w-md">
+                                <select id="<?php echo $prefix; ?>-opening" name="<?php echo $prefix; ?>-opening"
+                                        class="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                                     <option value="">Open</option>
                                     <?php foreach($times as $t): ?>
-                                        <option value="<?php echo $t; ?>"><?php echo $t; ?></option>
+                                        <option value="<?php echo $t; ?>"><?php echo date('g:i A', strtotime($t)); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <select id="<?php echo $prefix; ?>-closing" name="<?php echo $prefix; ?>-closing" required
-                                        class="w-1/2 px-3 py-2 bg-input border border-border rounded-lg text-foreground">
+                                
+                                <span class="text-muted-foreground">to</span>
+                                
+                                <select id="<?php echo $prefix; ?>-closing" name="<?php echo $prefix; ?>-closing"
+                                        class="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                                     <option value="">Close</option>
                                     <?php foreach($times as $t): ?>
-                                        <option value="<?php echo $t; ?>"><?php echo $t; ?></option>
+                                        <option value="<?php echo $t; ?>"><?php echo date('g:i A', strtotime($t)); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                
+                                <button type="button" onclick="copyHours('<?php echo $prefix; ?>')" 
+                                        class="px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors" 
+                                        title="Copy to all days">
+                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                </button>
                             </div>
                         </div>
-                        <?php endforeach; ?>
                     </div>
+                    <?php endforeach; ?>
                     
-                    <div class="flex justify-end space-x-4 mt-4">
-                        <button type="submit" class="px-6 py-2 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg">
-                            Set Hours
+                    <div class="flex justify-end pt-4 border-t border-border">
+                        <button type="submit" class="px-6 py-2.5 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors flex items-center space-x-2">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Save Hours</span>
                         </button>
                     </div>
-                    
-                    <script>
-                        function setAllHours(e){let l=document.getElementById(e+"-opening").value,t=document.getElementById(e+"-closing").value;["m","tu","w","th","f","sa","su"].forEach(e=>{document.getElementById(e+"-opening").value=l,document.getElementById(e+"-closing").value=t})}
-                    </script>
-
                 </form>
-            </div> 
+            </div>
+            <?php else: ?>
+            <div class="bg-card rounded-xl border border-border p-12 text-center">
+                <i data-lucide="alert-circle" class="w-16 h-16 text-yellow-500 mx-auto mb-4"></i>
+                <h3 class="text-xl font-semibold text-foreground mb-2">Business Profile Required</h3>
+                <p class="text-muted-foreground mb-6">Create your business profile before setting hours</p>
+                <button onclick="switchTab('settings')" class="px-6 py-3 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors">
+                    Go to Settings
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
-        
-    </div>    
+
+        <!-- Reviews Tab -->
+        <div id="tab-reviews" class="tab-content <?php echo $activeTab === 'reviews' ? 'active' : ''; ?>">
+            <div class="bg-card rounded-xl border border-border p-12 text-center">
+                <i data-lucide="star" class="w-16 h-16 text-muted-foreground mx-auto mb-4"></i>
+                <h3 class="text-xl geist text-foreground mb-2">Reviews Coming Soon</h3>
+                <p class="text-muted-foreground">You will be able to view and reply to reviews here.</p>
+            </div>
+        </div>
+    </div>
 </main>
 
 <script>
-function openTab(e){let t=document.querySelectorAll(".tab");t.forEach(e=>e.classList.remove("active"));let a=document.getElementById(e);a&&a.classList.add("active")}function showMessage(e,t="info"){let a=document.getElementById("message-modal"),n=document.getElementById("message-text"),o=document.getElementById("message-icon"),r=document.getElementById("message-close");n.textContent=e,o.innerHTML="";let l="",s="";switch(t){case"success":l="check-circle",s="text-green-500";break;case"error":l="alert-circle",s="text-red-500";break;case"warning":l="alert-triangle",s="text-yellow-500";break;default:l="info",s="text-blue-500"}let i=document.createElement("i");i.setAttribute("data-lucide",l),i.className=`w-10 h-10 ${s} mb-2`,o.appendChild(i),a.classList.remove("hidden"),lucide.createIcons(),r.onclick=()=>{a.classList.add("hidden")},a.onclick=e=>{e.target===a&&a.classList.add("hidden")}}function showConfirm(e){return new Promise(t=>{let a=document.getElementById("confirm-modal"),n=document.getElementById("confirm-text"),o=document.getElementById("confirm-yes"),r=document.getElementById("confirm-no");n.textContent=e,a.classList.remove("hidden");let l=()=>{a.classList.add("hidden"),o.onclick=null,r.onclick=null};o.onclick=()=>{l(),t(!0)},r.onclick=()=>{l(),t(!1)},a.onclick=e=>{e.target===a&&(l(),t(!1))}})}async function handleDeleteDeal(e){let t=await showConfirm("Are you sure you want to delete this deal?");t&&(window.location.href=e)}function setupDragDrop(e,t,a,n){let o=document.getElementById(e),r=document.getElementById(t),l=document.getElementById(a),s=document.getElementById(n);s.addEventListener("click",()=>o.click()),["dragenter","dragover"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.add("border-primary","bg-muted/20")})}),["dragleave","drop"].forEach(e=>{s.addEventListener(e,e=>{e.preventDefault(),s.classList.remove("border-primary","bg-muted/20")})}),s.addEventListener("drop",e=>{let t=e.dataTransfer.files[0];if(t&&(o.files=e.dataTransfer.files,r.textContent=t.name,l)){let a=new FileReader;a.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},a.readAsDataURL(t)}}),o.addEventListener("change",()=>{let e=o.files[0];if(e){if(r.textContent=e.name,l){let t=new FileReader;t.onload=e=>{l.src=e.target.result,l.classList.remove("hidden")},t.readAsDataURL(e)}}else r.textContent="Drag & drop an image here, or click to browse",l&&l.classList.add("hidden")})}function fillLatLong(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6)},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}async function fillLocation(){if(!navigator.geolocation){showMessage("Geolocation is not supported by your browser.","error");return}navigator.geolocation.getCurrentPosition(async e=>{let t=e.coords.latitude,a=e.coords.longitude;document.getElementById("lat").value=t.toFixed(6),document.getElementById("long").value=a.toFixed(6);try{let n=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${t}&lon=${a}&addressdetails=1`);if(!n.ok)throw Error("Failed to fetch address");let o=await n.json(),r=o.address,l=[r.house_number,r.road].filter(Boolean).join(" "),s=r.city||r.town||r.village||"",i=r.state||"",d=r.postcode||"",c=r.country||"";document.getElementById("street").value=l,document.getElementById("city").value=s,document.getElementById("state").value=i,document.getElementById("zip").value=d,document.getElementById("country").value=c}catch(g){console.error(g),showMessage("Could not get address.","error")}},e=>{showMessage("Geolocation failed: "+e.message,"error")},{enableHighAccuracy:!0,timeout:1e4,maximumAge:0})}openTab("overview"),lucide.createIcons(),setupDragDrop("thumbnail","thumbnail-label","thumbnail-preview","thumbnail-dropzone"),setupDragDrop("banner","banner-label","banner-preview","banner-dropzone");
-</script>
+// Tab Management
+function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all nav tabs
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById('tab-' + tabName);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // Add active class to clicked nav tab
+    event.target.closest('.nav-tab').classList.add('active');
+    
+    // Update URL without reload
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tabName);
+    window.history.pushState({}, '', url);
+    
+    // Reinitialize icons
+    lucide.createIcons();
+}
 
-<?php include 'includes/footer.php'; ?>
+// Toast Notifications
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    const toastIcon = document.getElementById('toast-icon');
+    
+    toastMessage.textContent = message;
+    toastIcon.innerHTML = '';
+    
+    let iconName = 'info';
+    let iconColor = 'text-blue-500';
+    
+    switch(type) {
+        case 'success':
+            iconName = 'check-circle';
+            iconColor = 'text-green-500';
+            break;
+        case 'error':
+            iconName = 'alert-circle';
+            iconColor = 'text-red-500';
+            break;
+        case 'warning':
+            iconName = 'alert-triangle';
+            iconColor = 'text-yellow-500';
+            break;
+    }
+    
+    const icon = document.createElement('i');
+    icon.setAttribute('data-lucide', iconName);
+    icon.className = `w-5 h-5 ${iconColor}`;
+    toastIcon.appendChild(icon);
+    
+    toast.classList.remove('hidden');
+    lucide.createIcons();
+    
+    setTimeout(() => hideToast(), 5000);
+}
+
+function hideToast() {
+    document.getElementById('toast').classList.add('hidden');
+}
+
+// Confirm Dialog
+function showConfirm(message) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('confirm-modal');
+        const text = document.getElementById('confirm-text');
+        const yesBtn = document.getElementById('confirm-yes');
+        const noBtn = document.getElementById('confirm-no');
+        
+        text.textContent = message;
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+        
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            yesBtn.onclick = null;
+            noBtn.onclick = null;
+        };
+        
+        yesBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        noBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve(false);
+            }
+        };
+    });
+}
+
+// Deal Deletion
+async function handleDeleteDeal(dealId) {
+    const confirmed = await showConfirm('Are you sure you want to delete this deal? This action cannot be undone.');
+    if (confirmed) {
+        window.location.href = '?delete_deal=' + dealId;
+    }
+}
+
+// Image Upload
+function setupDragDrop(inputId, labelId, previewId, dropzoneId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    const preview = document.getElementById(previewId);
+    const dropzone = document.getElementById(dropzoneId);
+    
+    if (!input || !dropzone) return;
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-primary', 'bg-muted/20');
+        });
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary', 'bg-muted/20');
+        });
+    });
+    
+    dropzone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            input.files = e.dataTransfer.files;
+            updatePreview(file);
+        }
+    });
+
+    input.addEventListener('change', () => {
+        if (input.files && input.files[0]) {
+            updatePreview(input.files[0]);
+        }
+    });
+
+    function updatePreview(file) {
+        if (!preview) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.parentElement.classList.remove('hidden');
+            if (label) label.textContent = file.name;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Auto-detect location
+function fillLocation() {
+    if (!navigator.geolocation) {
+        showToast('Geolocation not supported', 'error');
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        document.getElementById('lat').value = lat;
+        document.getElementById('long').value = lon;
+
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+            );
+            const data = await res.json();
+
+            document.getElementById('street').value =
+                `${data.address.house_number || ''} ${data.address.road || ''}`.trim();
+            document.getElementById('city').value =
+                data.address.city || data.address.town || data.address.village || '';
+            document.getElementById('state').value = data.address.state || '';
+            document.getElementById('zip').value = data.address.postcode || '';
+            document.getElementById('country').value = data.address.country || '';
+
+            showToast('Location detected successfully', 'success');
+        } catch {
+            showToast('Failed to detect address', 'error');
+        }
+    }, () => {
+        showToast('Location permission denied', 'error');
+    });
+}
+
+// Copy hours to all days
+function copyHours(prefix) {
+    const open = document.getElementById(`${prefix}-opening`).value;
+    const close = document.getElementById(`${prefix}-closing`).value;
+    const closed = document.getElementById(`${prefix}-closed-checker`).checked;
+
+    ['m','tu','w','th','f','sa','su'].forEach(p => {
+        if (p === prefix) return;
+        document.getElementById(`${p}-opening`).value = open;
+        document.getElementById(`${p}-closing`).value = close;
+        document.getElementById(`${p}-closed-checker`).checked = closed;
+    });
+
+    showToast('Hours copied to all days', 'success');
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    setupDragDrop('thumbnail', 'thumbnail-label', 'thumbnail-preview', 'thumbnail-dropzone');
+    setupDragDrop('banner', 'banner-label', 'banner-preview', 'banner-dropzone');
+
+    lucide.createIcons();
+
+    // Flash success from query params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'deal_created') {
+        showToast('Deal created successfully!', 'success');
+    }
+    if (params.get('success') === 'deal_deleted') {
+        showToast('Deal deleted successfully!', 'success');
+    }
+});
+</script>
