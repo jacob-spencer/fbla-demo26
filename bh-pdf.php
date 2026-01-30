@@ -1,5 +1,4 @@
 <?php
-error_reporting(0);
 require_once 'functions.php';
 ob_start();
 require_once 'search-ajax.php';
@@ -7,6 +6,9 @@ ob_end_clean();
 header('Content-Type: text/html; charset=utf-8');
 
 $db = Database::getInstance();
+
+ini_set('display_errors', 'Off');
+error_reporting(0);
 
 $zip = $_GET['zip'] ?? '';
 if (!$zip) {

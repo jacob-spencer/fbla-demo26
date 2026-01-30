@@ -34,57 +34,9 @@ $deals = $db->fetchAll("
 include 'includes/header.php';
 ?>
 
-<style>
-/* Glowing wave effect */
-html, body {
-    overflow-x: hidden; /* prevent horizontal scrolling */
-    overflow-y: auto hidden;   /* allow vertical scroll */
-}
-.wave-left-top, 
-.wave-left-bottom, 
-.wave-right-top, 
-.wave-right-bottom {
-    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    animation: hueRotate 20s ease-in-out infinite alternate;
-    filter: hue-rotate(0deg);
-}
-
-.wave-left-top  { animation-delay: 0s; }
-.wave-left-bottom { animation-delay: 1s; }
-.wave-right-top { animation-delay: 2s; }
-.wave-right-bottom { animation-delay: 3s; }
-
-@keyframes hueRotate {
-    0%   { filter: hue-rotate(0deg); }
-    50%  { filter: hue-rotate(0deg); } 
-    100% { filter: hue-rotate(0deg); }
-}
-
-/* Keep your wave movement animations */
-@keyframes waveLeft { 0%,100% { transform: translateX(-40%); } }
-@keyframes waveRight { 0%,100% { transform: translateX(40%); } }
-
-#waves {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;          /* will be updated via JS */
-    z-index: -10;
-    overflow: hidden;      /* keep wave shapes from spilling outside */
-}
-</style>
-
-<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {const container = document.getElementById("waves");const wavePatterns = [{ classes: "left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top", verticalOffset: -0.25 },{ classes: "-left-1/2 w-[90vw] h-[90vh] wave-left-top", verticalOffset: 0.33 },{ classes: "left-1/2 w-[100vw] h-[75vh] wave-left-bottom", verticalOffset: 0.66 },{ classes: "-left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },{ classes: "left-1/2 w-[80vw] h-[85vh] wave-right-bottom", verticalOffset: 0 },{ classes: "left-1/2 w-[100vw] h-[70vh] wave-left-bottom", verticalOffset: -0.2 }];function spawnWaves() {container.innerHTML = "";const pageHeight = document.body.scrollHeight;const sectionHeight = window.innerHeight;const numSections = Math.ceil(pageHeight / sectionHeight);for (let i = 0; i < numSections; i++) {const offsetY = i * sectionHeight;wavePatterns.forEach(cfg => {const div = document.createElement("div");div.className = `absolute ${cfg.classes}`;const waveOffset = cfg.verticalOffset ? cfg.verticalOffset * sectionHeight : 0;div.style.top = `${offsetY + waveOffset}px`;container.appendChild(div);});}}function resizeWavesContainer(){container.style.height = document.body.scrollHeight + "px";}window.addEventListener("load", () => {resizeWavesContainer();spawnWaves();});window.addEventListener("resize", () => {resizeWavesContainer();spawnWaves();});});
-</script>
-
-
 <section class="text-white pt-40">
     <div class="max-w-7xl mx-auto text-center z-20 pb-10">
-        <h1 class="text-5xl md:text-6xl font-bold mb-6">
+        <h1 class="geist text-5xl md:text-6xl font-bold mb-6">
             Discover Local
             <span class="text-accent">Businesses</span>
         </h1>
@@ -120,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
     
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-foreground mb-4">Browse by Category</h2>
+                <h2 class="geist text-3xl text-foreground mb-4">Browse by Category</h2>
                 <p class="text-muted-foreground">Find businesses by what you're looking for</p>
             </div>
             
@@ -143,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
             <div class="max-w-7xl mx-auto mt-40 px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between mb-12">
                     <div>
-                        <h2 class="text-3xl font-bold text-foreground mb-4">Featured Deals</h2>
+                        <h2 class="geist text-3xl text-foreground mb-4">Featured Deals</h2>
                         <p class="text-muted-foreground">Don't miss out on these amazing offers</p>
                     </div>
                     <a href="/deals" class="px-4 py-2 bg-card/40 backdrop-blur-sm rounded-lg hover:bg-card/70 backdrop-blur-sm transition-all duration-200 transition-colors">
@@ -161,7 +113,10 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
                                  alt="<?php echo escapeHtml($deal['business_name']); ?>" 
                                  class="w-full h-48 object-cover">
                             <div class="absolute top-3 left-3 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm font-semibold">
-                                <?php echo escapeHtml($deal['discount_value']); ?> OFF
+                                <?php
+                                    $value = $deal['discount_type'] === 'percentage' ? escapeHtml($deal['discount_value']) . '%' : '$' . escapeHtml($deal['discount_value']);
+                                    echo $value . ' OFF';
+                                ?>
                             </div>
                         </div>
                         <div class="p-6">
@@ -188,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40">
             <div class="flex items-center justify-between mb-12">
                 <div>
-                    <h2 class="text-3xl font-bold text-foreground mb-4">Featured Businesses</h2>
+                    <h2 class="geist text-3xl text-foreground mb-4">Featured Businesses</h2>
                     <p class="text-muted-foreground">Discover highly rated businesses in your area</p>
                 </div>
                 
@@ -253,6 +208,128 @@ document.addEventListener("DOMContentLoaded", () => {const container = document.
 
 
 </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #interactive-loader {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, #0f1117, #000);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+            animation: fadeOut 0.8s ease forwards;
+            animation-delay: 3s;
+            pointer-events: none;
+        }
+
+        .loader-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .text-container {
+            position: relative;
+            font-family: 'Geist', sans-serif;
+            font-weight: 800;
+            font-size: 120px;
+            letter-spacing: -2px;
+            color: rgba(192, 192, 192, 0.25);
+        }
+
+        .liquid-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%);
+            animation: fillUp 2.8s ease-out forwards;
+        }
+
+        .liquid-fill::before {
+            content: 'Mainstreet';
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-family: 'Geist', sans-serif;
+            font-weight: 800;
+            font-size: 120px;
+            letter-spacing: -2px;
+            color: #2563eb;
+        }
+
+        .loading-text {
+            position: fixed;
+            bottom: 40px;
+            left: 40px;
+            font-family: 'Helvetica', sans-serif;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes fillUp {
+            0% {
+                clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%);
+            }
+            100% {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .text-container,
+            .liquid-fill::before {
+                font-size: 60px;
+            }
+            .loading-text {
+                font-size: 14px;
+                bottom: 20px;
+                left: 20px;
+            }
+        }
+    </style>
+
+    <script>
+        const percentEl = document.getElementById('percent');
+        const duration = 2800;
+        const startTime = Date.now();
+
+        function updatePercent() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            percentEl.textContent = Math.floor(progress);
+
+            if (progress < 100) {
+                requestAnimationFrame(updatePercent);
+            }
+        }
+
+        updatePercent();
+
+        setTimeout(() => {
+            const loader = document.getElementById('interactive-loader');
+            loader && loader.remove();
+        }, 3800);
+    </script>
 
 
 <script>

@@ -1,8 +1,5 @@
 <?php
 require_once 'functions.php';
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 requireAuth();
 $user = getCurrentUser();
@@ -220,34 +217,7 @@ include 'includes/header.php';
 ?>
 
 <style>
-    .tab-content {
-        display: none;
-        animation: fadeIn 0.3s ease-in;
-    }
-    .tab-content.active {
-        display: block;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .nav-tab {
-        position: relative;
-        transition: all 0.3s ease;
-    }
-    .nav-tab.active {
-        color: var(--accent);
-        font-weight: 600;
-    }
-    .nav-tab.active::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: var(--accent);
-    }
+    .tab-content{display:none;animation:fadeIn 0.3s ease-in}.tab-content.active{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.nav-tab{position:relative;transition:all 0.3s ease}.nav-tab.active{color:var(--accent);font-weight:600}.nav-tab.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--accent)}
 </style>
 
 <main class="min-h-screen bg-background py-20">
@@ -940,239 +910,17 @@ include 'includes/header.php';
 </main>
 
 <script>
-// Tab Management
-function switchTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Remove active class from all nav tabs
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Show selected tab
-    const selectedTab = document.getElementById('tab-' + tabName);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-    }
-    
-    // Add active class to clicked nav tab
-    event.target.closest('.nav-tab').classList.add('active');
-    
-    // Update URL without reload
-    const url = new URL(window.location);
-    url.searchParams.set('tab', tabName);
-    window.history.pushState({}, '', url);
-    
-    // Reinitialize icons
-    lucide.createIcons();
-}
-
-// Toast Notifications
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toast-message');
-    const toastIcon = document.getElementById('toast-icon');
-    
-    toastMessage.textContent = message;
-    toastIcon.innerHTML = '';
-    
-    let iconName = 'info';
-    let iconColor = 'text-blue-500';
-    
-    switch(type) {
-        case 'success':
-            iconName = 'check-circle';
-            iconColor = 'text-green-500';
-            break;
-        case 'error':
-            iconName = 'alert-circle';
-            iconColor = 'text-red-500';
-            break;
-        case 'warning':
-            iconName = 'alert-triangle';
-            iconColor = 'text-yellow-500';
-            break;
-    }
-    
-    const icon = document.createElement('i');
-    icon.setAttribute('data-lucide', iconName);
-    icon.className = `w-5 h-5 ${iconColor}`;
-    toastIcon.appendChild(icon);
-    
-    toast.classList.remove('hidden');
-    lucide.createIcons();
-    
-    setTimeout(() => hideToast(), 5000);
-}
-
-function hideToast() {
-    document.getElementById('toast').classList.add('hidden');
-}
-
-// Confirm Dialog
-function showConfirm(message) {
-    return new Promise(resolve => {
-        const modal = document.getElementById('confirm-modal');
-        const text = document.getElementById('confirm-text');
-        const yesBtn = document.getElementById('confirm-yes');
-        const noBtn = document.getElementById('confirm-no');
-        
-        text.textContent = message;
-        modal.classList.remove('hidden');
-        lucide.createIcons();
-        
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            yesBtn.onclick = null;
-            noBtn.onclick = null;
-        };
-        
-        yesBtn.onclick = () => {
-            cleanup();
-            resolve(true);
-        };
-        
-        noBtn.onclick = () => {
-            cleanup();
-            resolve(false);
-        };
-        
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                cleanup();
-                resolve(false);
-            }
-        };
-    });
-}
-
-// Deal Deletion
-async function handleDeleteDeal(dealId) {
-    const confirmed = await showConfirm('Are you sure you want to delete this deal? This action cannot be undone.');
-    if (confirmed) {
-        window.location.href = '?delete_deal=' + dealId;
-    }
-}
-
-// Image Upload
-function setupDragDrop(inputId, labelId, previewId, dropzoneId) {
-    const input = document.getElementById(inputId);
-    const label = document.getElementById(labelId);
-    const preview = document.getElementById(previewId);
-    const dropzone = document.getElementById(dropzoneId);
-    
-    if (!input || !dropzone) return;
-    
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropzone.classList.add('border-primary', 'bg-muted/20');
-        });
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('border-primary', 'bg-muted/20');
-        });
-    });
-    
-    dropzone.addEventListener('drop', (e) => {
-        const file = e.dataTransfer.files[0];
-        if (file) {
-            input.files = e.dataTransfer.files;
-            updatePreview(file);
-        }
-    });
-
-    input.addEventListener('change', () => {
-        if (input.files && input.files[0]) {
-            updatePreview(input.files[0]);
-        }
-    });
-
-    function updatePreview(file) {
-        if (!preview) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            preview.src = e.target.result;
-            preview.parentElement.classList.remove('hidden');
-            if (label) label.textContent = file.name;
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-// Auto-detect location
-function fillLocation() {
-    if (!navigator.geolocation) {
-        showToast('Geolocation not supported', 'error');
-        return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async position => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-
-        document.getElementById('lat').value = lat;
-        document.getElementById('long').value = lon;
-
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-            );
-            const data = await res.json();
-
-            document.getElementById('street').value =
-                `${data.address.house_number || ''} ${data.address.road || ''}`.trim();
-            document.getElementById('city').value =
-                data.address.city || data.address.town || data.address.village || '';
-            document.getElementById('state').value = data.address.state || '';
-            document.getElementById('zip').value = data.address.postcode || '';
-            document.getElementById('country').value = data.address.country || '';
-
-            showToast('Location detected successfully', 'success');
-        } catch {
-            showToast('Failed to detect address', 'error');
-        }
-    }, () => {
-        showToast('Location permission denied', 'error');
-    });
-}
-
-// Copy hours to all days
-function copyHours(prefix) {
-    const open = document.getElementById(`${prefix}-opening`).value;
-    const close = document.getElementById(`${prefix}-closing`).value;
-    const closed = document.getElementById(`${prefix}-closed-checker`).checked;
-
-    ['m','tu','w','th','f','sa','su'].forEach(p => {
-        if (p === prefix) return;
-        document.getElementById(`${p}-opening`).value = open;
-        document.getElementById(`${p}-closing`).value = close;
-        document.getElementById(`${p}-closed-checker`).checked = closed;
-    });
-
-    showToast('Hours copied to all days', 'success');
-}
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-    setupDragDrop('thumbnail', 'thumbnail-label', 'thumbnail-preview', 'thumbnail-dropzone');
-    setupDragDrop('banner', 'banner-label', 'banner-preview', 'banner-dropzone');
-
-    lucide.createIcons();
-
-    // Flash success from query params
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === 'deal_created') {
-        showToast('Deal created successfully!', 'success');
-    }
-    if (params.get('success') === 'deal_deleted') {
-        showToast('Deal deleted successfully!', 'success');
-    }
-});
+function switchTab(tabName){document.querySelectorAll('.tab-content').forEach(tab=>{tab.classList.remove('active')});document.querySelectorAll('.nav-tab').forEach(tab=>{tab.classList.remove('active')});const selectedTab=document.getElementById('tab-'+tabName);if(selectedTab){selectedTab.classList.add('active')}
+event.target.closest('.nav-tab').classList.add('active');const url=new URL(window.location);url.searchParams.set('tab',tabName);window.history.pushState({},'',url);lucide.createIcons()}
+function showToast(message,type='info'){const toast=document.getElementById('toast');const toastMessage=document.getElementById('toast-message');const toastIcon=document.getElementById('toast-icon');toastMessage.textContent=message;toastIcon.innerHTML='';let iconName='info';let iconColor='text-blue-500';switch(type){case 'success':iconName='check-circle';iconColor='text-green-500';break;case 'error':iconName='alert-circle';iconColor='text-red-500';break;case 'warning':iconName='alert-triangle';iconColor='text-yellow-500';break}
+const icon=document.createElement('i');icon.setAttribute('data-lucide',iconName);icon.className=`w-5 h-5 ${iconColor}`;toastIcon.appendChild(icon);toast.classList.remove('hidden');lucide.createIcons();setTimeout(()=>hideToast(),5000)}
+function hideToast(){document.getElementById('toast').classList.add('hidden')}
+function showConfirm(message){return new Promise(resolve=>{const modal=document.getElementById('confirm-modal');const text=document.getElementById('confirm-text');const yesBtn=document.getElementById('confirm-yes');const noBtn=document.getElementById('confirm-no');text.textContent=message;modal.classList.remove('hidden');lucide.createIcons();const cleanup=()=>{modal.classList.add('hidden');yesBtn.onclick=null;noBtn.onclick=null};yesBtn.onclick=()=>{cleanup();resolve(!0)};noBtn.onclick=()=>{cleanup();resolve(!1)};modal.onclick=(e)=>{if(e.target===modal){cleanup();resolve(!1)}}})}
+async function handleDeleteDeal(dealId){const confirmed=await showConfirm('Are you sure you want to delete this deal? This action cannot be undone.');if(confirmed){window.location.href='?delete_deal='+dealId}}
+function setupDragDrop(inputId,labelId,previewId,dropzoneId){const input=document.getElementById(inputId);const label=document.getElementById(labelId);const preview=document.getElementById(previewId);const dropzone=document.getElementById(dropzoneId);if(!input||!dropzone)return;['dragenter','dragover'].forEach(eventName=>{dropzone.addEventListener(eventName,(e)=>{e.preventDefault();dropzone.classList.add('border-primary','bg-muted/20')})});['dragleave','drop'].forEach(eventName=>{dropzone.addEventListener(eventName,(e)=>{e.preventDefault();dropzone.classList.remove('border-primary','bg-muted/20')})});dropzone.addEventListener('drop',(e)=>{const file=e.dataTransfer.files[0];if(file){input.files=e.dataTransfer.files;updatePreview(file)}});input.addEventListener('change',()=>{if(input.files&&input.files[0]){updatePreview(input.files[0])}});function updatePreview(file){if(!preview)return;const reader=new FileReader();reader.onload=e=>{preview.src=e.target.result;preview.parentElement.classList.remove('hidden');if(label)label.textContent=file.name};reader.readAsDataURL(file)}}
+function fillLocation(){if(!navigator.geolocation){showToast('Geolocation not supported','error');return}
+navigator.geolocation.getCurrentPosition(async position=>{const lat=position.coords.latitude;const lon=position.coords.longitude;document.getElementById('lat').value=lat;document.getElementById('long').value=lon;try{const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);const data=await res.json();document.getElementById('street').value=`${data.address.house_number || ''} ${data.address.road || ''}`.trim();document.getElementById('city').value=data.address.city||data.address.town||data.address.village||'';document.getElementById('state').value=data.address.state||'';document.getElementById('zip').value=data.address.postcode||'';document.getElementById('country').value=data.address.country||'';showToast('Location detected successfully','success')}catch{showToast('Failed to detect address','error')}},()=>{showToast('Location permission denied','error')})}
+function copyHours(prefix){const open=document.getElementById(`${prefix}-opening`).value;const close=document.getElementById(`${prefix}-closing`).value;const closed=document.getElementById(`${prefix}-closed-checker`).checked;['m','tu','w','th','f','sa','su'].forEach(p=>{if(p===prefix)return;document.getElementById(`${p}-opening`).value=open;document.getElementById(`${p}-closing`).value=close;document.getElementById(`${p}-closed-checker`).checked=closed});showToast('Hours copied to all days','success')}
+document.addEventListener('DOMContentLoaded',()=>{setupDragDrop('thumbnail','thumbnail-label','thumbnail-preview','thumbnail-dropzone');setupDragDrop('banner','banner-label','banner-preview','banner-dropzone');lucide.createIcons();const params=new URLSearchParams(window.location.search);if(params.get('success')==='deal_created'){showToast('Deal created successfully!','success')}
+if(params.get('success')==='deal_deleted'){showToast('Deal deleted successfully!','success')}})
 </script>

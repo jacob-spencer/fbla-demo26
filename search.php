@@ -23,41 +23,6 @@ $isOpen = array_key_exists('open', $_GET) ? ($_GET['open']===''?null:(bool)$_GET
 include 'includes/header.php';
 ?>
 
-<style>
-/* --- existing wave styling left as-is --- */
-html, body {
-    overflow-x: hidden;
-    overflow-y: auto hidden;
-}
-.wave-left-top, 
-.wave-left-bottom, 
-.wave-right-top, 
-.wave-right-bottom {
-    background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    animation: hueRotate 6s ease-in-out infinite alternate;
-    filter: hue-rotate(0deg);
-}
-
-.wave-left-top  { animation-delay: 0s; }
-.wave-left-bottom { animation-delay: 1s; }
-.wave-right-top { animation-delay: 2s; }
-.wave-right-bottom { animation-delay: 3s; }
-
-@keyframes hueRotate {
-    0%   { filter: hue-rotate(0deg); }
-    50%  { filter: hue-rotate(0deg); } 
-    100% { filter: hue-rotate(0deg); }
-}
-
-/* Keep your wave movement animations */
-@keyframes waveLeft { 0%,100% { transform: translateX(-40%); } }
-@keyframes waveRight { 0%,100% { transform: translateX(40%); } }
-
-#waves { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -10; overflow: hidden; }
-</style>
-
-<section id="waves" class="absolute inset-0 -z-10 pointer-events-none"></section>
-
 <main class="min-h-screen">
     <!-- Loading Overlay -->
     <div id="geo-loading-overlay" class="fixed inset-0 bg-background/70 backdrop-blur-lg flex items-center justify-center z-50 hidden">
@@ -73,7 +38,7 @@ html, body {
     <!-- Search Header -->
     <section class="text-white pt-36 pb-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4">
+            <h1 class="geist text-4xl md:text-5xl mb-4">
                 Search <span class="text-accent">Businesses</span>
             </h1>
         </div>
@@ -179,7 +144,7 @@ html, body {
 </main>
 
 <script>
-function loadWaves(){let e=document.getElementById("waves"),t=[{classes:"left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] wave-right-top",verticalOffset:-.25},{classes:"-left-1/2 w-[90vw] h-[90vh] wave-left-top",verticalOffset:.33},{classes:"left-1/2 w-[100vw] h-[75vh] wave-left-bottom",verticalOffset:.66},{classes:"-left-1/2 w-[80vw] h-[85vh] wave-right-bottom",verticalOffset:0},{classes:"left-1/2 w-[80vw] h-[85vh] wave-right-bottom",verticalOffset:0},{classes:"left-1/2 w-[100vw] h-[70vh] wave-left-bottom",verticalOffset:-.2},];function r(){e.innerHTML="";let r=document.body.scrollHeight,a=window.innerHeight,o=Math.ceil(r/a);for(let s=0;s<o;s++){let n=s*a;t.forEach(t=>{let r=document.createElement("div");r.className=`absolute ${t.classes}`;let o=t.verticalOffset?t.verticalOffset*a:0;r.style.top=`${n+o}px`,e.appendChild(r)})}}function a(){e.style.height=document.body.scrollHeight+"px"}a(),r(),window.addEventListener("resize",()=>{a(),r()})}function addParam(e,t){let r=new URL(window.location.href);r.searchParams.set(e,t),window.history.pushState({},"",r.toString())}function renderStars(e){let t="";for(let r=1;r<=5;r++)t+=r<=e?'<span class="text-yellow-400">★</span>':'<span class="text-gray-300">★</span>';return t}lucide.createIcons();let currentPage=1;function loadResults(e={}){let t=document.getElementById("geo-loading-overlay"),r=document.getElementById("resultsContainer"),a=document.getElementById("loader-text");t.classList.remove("hidden"),a.innerHTML="Searching...",r.innerHTML='<p class="text-center text-muted-foreground py-12">Loading...</p>';let o=new URL("/search-ajax.php",window.location.origin);Object.keys(e).forEach(t=>{let r=e[t];""!==r&&null!=r&&(o.searchParams.set(t,r),addParam(t,r))}),o.searchParams.set("paginate_result",!0),fetch(o).then(e=>e.json()).then(a=>{if(t.classList.add("hidden"),!a.businesses||!a.businesses.length){r.innerHTML='<p class="text-center py-12 text-muted-foreground">No results found.</p>';return}let o="";a.businesses.forEach(e=>{let t=Number(e.average_rating||0);o+=`
+function loadWaves(){}function addParam(e,t){let r=new URL(window.location.href);r.searchParams.set(e,t),window.history.pushState({},"",r.toString())}function renderStars(e){let t="";for(let r=1;r<=5;r++)t+=r<=e?'<span class="text-yellow-400">★</span>':'<span class="text-gray-300">★</span>';return t}lucide.createIcons();let currentPage=1;function loadResults(e={}){let t=document.getElementById("geo-loading-overlay"),r=document.getElementById("resultsContainer"),a=document.getElementById("loader-text");t.classList.remove("hidden"),a.innerHTML="Searching...",r.innerHTML='<p class="text-center text-muted-foreground py-12">Loading...</p>';let o=new URL("/search-ajax.php",window.location.origin);Object.keys(e).forEach(t=>{let r=e[t];""!==r&&null!=r&&(o.searchParams.set(t,r),addParam(t,r))}),o.searchParams.set("paginate_result",!0),fetch(o).then(e=>e.json()).then(a=>{if(t.classList.add("hidden"),!a.businesses||!a.businesses.length){r.innerHTML='<p class="text-center py-12 text-muted-foreground">No results found.</p>';return}let o="";a.businesses.forEach(e=>{let t=Number(e.average_rating||0);o+=`
             <div class="group bg-card/40 backdrop-blur-sm hover:bg-card/60 rounded-xl hover:border-primary/50 overflow-hidden mb-4 cursor-pointer" onclick="window.location.href='/business?id=${e.id}'">
                 <div class="flex h-40">
                     <img src="${e.image_url||"fbla-waves.png"}" alt="${e.name}" class="w-48 h-full object-cover flex-shrink-0">
@@ -206,7 +171,62 @@ function loadWaves(){let e=document.getElementById("waves"),t=[{classes:"left-1/
                         </div>
                     </div>
                 </div>
-            </div>`});let s=Math.ceil(a.total/a.per_page),n=Math.max(1,a.page-Math.floor(2.5)),d=n+5-1;d>s&&(n=Math.max(1,(d=s)-5+1)),o+='<div class="flex justify-center mt-6 space-x-2" id="pagination">',a.page>1?o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground" data-page="${a.page-1}">&laquo;</button>`:o+='<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="1">&laquo;</button>',n>1&&(o+='<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="1">1</button>',n>2&&(o+=`<span class="px-2 py-1 text-gray-500">…</span>`));for(let l=n;l<=d;l++)o+=`<button class="px-3 py-1 rounded-lg ${l===a.page?"group bg-primary/40 backdrop-blur-sm hover:bg-primary/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-white":"group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground"}" data-page="${l}">${l}</button>`;d<s&&(d<s-1&&(o+=`<span class="px-2 py-1 text-gray-500">…</span>`),o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm rounded-lg transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="${s}">${s}</button>`),a.page<s?o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="${a.page+1}">&raquo;</button>`:o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="${a.page}">&raquo;</button>`,o+="</div>",r.innerHTML=o,lucide.createIcons(),t.classList.add("hidden");let i=r.querySelectorAll("#pagination button");i.forEach(t=>{t.addEventListener("click",r=>{let o=parseInt(t.getAttribute("data-page"));if(o===a.page)return;let s={...e,page:o};loadResults(s),window.scrollTo({top:0,behavior:"smooth"})})}),loadWaves()}).catch(e=>{t.classList.add("hidden"),r.innerHTML='<p class="text-center text-red-500 py-12">Error loading results.</p>',console.error(e)})}function handleUseMyLocation(){let e=document.getElementById("geo-loading-overlay"),t=document.getElementById("loader-text"),r=document.getElementById("locationInput");if(e.classList.remove("hidden"),t.textContent="Detecting your location...",!navigator.geolocation){alert("Geolocation not supported."),e.classList.add("hidden");return}navigator.geolocation.getCurrentPosition(t=>{fetch(`https://nominatim.openstreetmap.org/reverse?lat=${t.coords.latitude}&lon=${t.coords.longitude}&format=json`).then(e=>e.json()).then(t=>{let a=t.address?.postcode||"";r.value=a,e.classList.add("hidden"),loadResults(Object.fromEntries(new FormData(document.getElementById("filtersForm"))))}).catch(t=>{console.error(t),e.classList.add("hidden")})},t=>{console.warn(t),e.classList.add("hidden")})}document.addEventListener("DOMContentLoaded",()=>{let e=document.getElementById("searchForm"),t=document.getElementById("filtersForm"),r=document.getElementById("useLocationBtn"),a=e=>Object.fromEntries(new FormData(e).entries());e.addEventListener("submit",t=>{t.preventDefault(),loadResults(a(e))}),t.addEventListener("submit",e=>{e.preventDefault(),loadResults(a(t))}),r.addEventListener("click",handleUseMyLocation),loadResults(Object.fromEntries(new URLSearchParams(window.location.search)))});
+            </div>`});let s=Math.ceil(a.total/a.per_page),n=Math.max(1,a.page-Math.floor(2.5)),d=n+5-1;d>s&&(n=Math.max(1,(d=s)-5+1)),o+='<div class="flex justify-center mt-6 space-x-2" id="pagination">',a.page>1?o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground" data-page="${a.page-1}">&laquo;</button>`:o+='<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="1">&laquo;</button>',n>1&&(o+='<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="1">1</button>',n>2&&(o+=`<span class="px-2 py-1 text-gray-500">…</span>`));for(let l=n;l<=d;l++)o+=`<button class="px-3 py-1 rounded-lg ${l===a.page?"group bg-primary/40 backdrop-blur-sm hover:bg-primary/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-white":"group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground"}" data-page="${l}">${l}</button>`;d<s&&(d<s-1&&(o+=`<span class="px-2 py-1 text-gray-500">…</span>`),o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm rounded-lg transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="${s}">${s}</button>`),a.page<s?o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="${a.page+1}">&raquo;</button>`:o+=`<button class="px-3 py-1 rounded-lg group bg-card/40 backdrop-blur-sm hover:bg-card/60 backdrop-blur-sm transition-all duration-200 hover:border-primary/50 text-foreground text-foreground" data-page="${a.page}">&raquo;</button>`,o+="</div>",r.innerHTML=o,lucide.createIcons(),t.classList.add("hidden");let i=r.querySelectorAll("#pagination button");i.forEach(t=>{t.addEventListener("click",r=>{let o=parseInt(t.getAttribute("data-page"));if(o===a.page)return;let s={...e,page:o};loadResults(s),window.scrollTo({top:0,behavior:"smooth"})})}),loadWaves()}).catch(e=>{t.classList.add("hidden"),r.innerHTML='<p class="text-center text-red-500 py-12">Error loading results.</p>',console.error(e)})}
+            
+            function handleUseMyLocation() {
+                const overlay = document.getElementById("geo-loading-overlay");
+                const loaderText = document.getElementById("loader-text");
+                const locationInput = document.getElementById("locationInput");
+                const filtersForm = document.getElementById("filtersForm");
+            
+                if (!navigator.geolocation) {
+                    alert("Geolocation is not supported by your browser.");
+                    return;
+                }
+            
+                overlay.classList.remove("hidden");
+                loaderText.textContent = "Searching...";
+            
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+            
+                        locationInput.value = "Current Location";
+                        locationInput.classList.add("text-accent", "font-bold");
+                        
+                        overlay.classList.add("hidden");
+                        const formData = new FormData(filtersForm);
+                        const params = Object.fromEntries(formData.entries());
+                        
+                        params.lat = lat;
+                        params.lng = lng;
+                        params.sort = 'distance';
+            
+                        loadResults(params);
+                    },
+                    (error) => {
+                        overlay.classList.add("hidden");
+                        let msg = "Unable to retrieve location.";
+                        if (error.code === 1) msg = "Please allow location access in your browser settings.";
+                        alert(msg);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            }
+            
+            document.addEventListener("DOMContentLoaded",()=>{let e=document.getElementById("searchForm"),t=document.getElementById("filtersForm"),r=document.getElementById("useLocationBtn"),a=e=>Object.fromEntries(new FormData(e).entries());e.addEventListener("submit",t=>{t.preventDefault(),loadResults(a(e))}),t.addEventListener("submit",e=>{e.preventDefault(),loadResults(a(t))}),r.addEventListener("click",handleUseMyLocation),loadResults(Object.fromEntries(new URLSearchParams(window.location.search)))
+                
+                document.getElementById("locationInput").addEventListener("input", function() {
+                    this.classList.remove("text-accent", "font-bold");
+                    
+                    let url = new URL(window.location.href);
+                    url.searchParams.delete('lat');
+                    url.searchParams.delete('lng');
+                    window.history.pushState({}, "", url.toString());
+                });
+                
+            });
 </script>
 
 <?php include 'includes/footer.php'; ?>

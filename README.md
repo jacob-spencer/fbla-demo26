@@ -28,6 +28,12 @@ Mainstreet.lt is a local business discovery platform that helps users connect wi
 - Community members wanting to support local establishments
 - Users interested in discovering deals and promotions
 
+## Tech Stack
+- PHP 8.2
+- MySQL DB
+- Tailwind
+- Leaflet.js
+
 ## Getting Started
 
 Visit https://mainstreet.lt to:

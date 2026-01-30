@@ -176,7 +176,7 @@ include 'includes/header.php';
     <!-- Dashboard Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-3xl font-bold">Analytics</h1>
+            <h1 class="geist text-3xl">Analytics</h1>
             <p class="text-muted-foreground">Monitor your business performance</p>
         </div>
         <button id="downloadPdf" class="px-4 py-2 bg-primary text-white rounded-lg">Download PDF</button>

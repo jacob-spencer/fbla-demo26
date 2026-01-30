@@ -163,53 +163,6 @@ $pageDescription = $isLogin ? 'Sign in to your Mainstreet account' : 'Create you
 include 'includes/header.php';
 ?>
 
-<style>
-    /* Glowing wave effect */
-    html,body {
-        overflow-x: hidden;
-    }
-    .wave-left-top {
-        background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    }
-    .wave-left-bottom {
-        background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    }
-    .wave-right-top {
-        background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    }
-    .wave-right-bottom {
-        background: radial-gradient(ellipse, rgba(0, 120, 255, 0.6) 0%, transparent 70%);
-    }
-    @keyframes waveLeft {
-        0% { transform: translateX(-40%); }
-        100% { transform: translateX(-40%); }
-    }
-    @keyframes waveRight {
-        0% { transform: translateX(40%); }
-        100% { transform: translateX(40%); }
-    }
-</style>
-
-<section class="absolute left-0 top-0 inset-0 -z-10 pointer-events-none">
-    <?php if (!$isLogin): ?>
-        <div class="absolute left-1/2 top-0 w-[100vw] h-[70vh] -translate-x-1/2 wave-right-top"></div>
-        <div class="absolute -left-1/2 top-1/3 w-[90vw] h-[90vh] -translate-x-1/3 wave-left-top"></div>
-        <div class="absolute left-1/2 top-1/2 w-[100vw] h-[75vh] -translate-x-2/5 wave-left-bottom"></div>
-        <div class="absolute -left-1/2 bottom-0 w-[80vw] h-[85vh] translate-x-1/4 wave-right-bottom"></div>
-        <div class="absolute left-1/2 bottom-0 w-[80vw] h-[85vh] translate-x-1/3 wave-right-bottom"></div>
-        <div class="absolute left-1/2 bottom-[-20vh] w-[100vw] h-[70vh] -translate-x-1/2 wave-left-bottom"></div>
-        
-        <div class="absolute left-1/2 bottom-0 w-[80vw] h-[85vh] top-[100vh] translate-x-1/6 wave-right-bottom"></div>
-        <div class="absolute -left-1/2 top-1/3 w-[90vw] h-[90vh] top-[100vh] -translate-x-1/6 wave-left-top"></div>
-    <?php else: ?>
-        <div class="absolute left-1/2 top-0 w-[100vw] h-[70vh] -translate-x-1/2 wave-right-top"></div>
-        <div class="absolute -left-1/2 top-1/3 w-[90vw] h-[90vh] -translate-x-1/3 wave-left-top"></div>
-        <div class="absolute left-1/2 top-1/2 w-[100vw] h-[75vh] -translate-x-2/5 wave-left-bottom"></div>
-        <div class="absolute -left-1/2 bottom-0 w-[80vw] h-[85vh] translate-x-1/4 wave-right-bottom"></div>
-        <div class="absolute left-1/2 bottom-0 w-[80vw] h-[85vh] translate-x-1/3 wave-right-bottom"></div>
-        <div class="absolute left-1/2 bottom-[-20vh] w-[100vw] h-[70vh] -translate-x-1/2 wave-left-bottom"></div>
-    <?php endif; ?>
-</section>
     
 <div class="min-h-screen flex justify-center pt-32 pb-12 px-4 sm:px-6 lg:px-8">
     <div class="z-20 bg-card/40 backdrop-blur-sm rounded-lg shadow p-6 flex items-center space-x-2">
@@ -359,7 +312,7 @@ include 'includes/header.php';
                 </div>
                 <?php endif; ?>
                 
-                <div class="g-recaptcha" data-sitekey="6LdG888rAAAAAHrqVDK9f18Usfu7LjYwP1w2fykM"></div>
+                <div class="g-recaptcha" data-sitekey="6LdG888rAAAAAHrqVDK9f18Usfu7LjYwP1w2fykM" data-theme="dark"></div>
     
                 <button type="submit" class="w-full px-4 py-3 bg-accent hover:bg-accent/90 text-black font-semibold rounded-lg transition-colors" id="submitBtn">
                     <?php echo $isLogin ? 'Sign In' : 'Create Account'; ?>
@@ -409,4 +362,4 @@ document.addEventListener('DOMContentLoaded', function() {const form = document.
 form.addEventListener('submit', function(e) {submitBtn.disabled = true;submitBtn.textContent = 'Creating Account...';submitBtn.style.opacity = '0.7';});}});function checkPasswordStrength(password) {let strength = 0;if(password.length>=8)strength++;if(/[a-z]/.test(password))strength++;if(/[A-Z]/.test(password))strength++;if(/[0-9]/.test(password))strength++;if(/[^A-Za-z0-9]/.test(password))strength++;return strength;}function updatePasswordStrengthIndicator(strength) {const passwordField = document.getElementById('password');if (!passwordField) return;const existingIndicator = passwordField.parentNode.querySelector('.password-strength');if (existingIndicator) {existingIndicator.remove();}const indicator = document.createElement('div');indicator.className = 'password-strength mt-1';const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];const strengthColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];indicator.innerHTML = `<div class="flex items-center space-x-2"><div class="flex space-x-1">${[1,2,3,4,5].map(i => `<div class="w-2 h-2 rounded-full ${i <= strength ? '' : 'bg-gray-300'}" style="background-color: ${i <= strength ? strengthColors[strength - 1] : '#d1d5db'}"></div>`).join('')}</div><span class="text-xs" style="color: ${strengthColors[strength - 1] || '#6b7280'}">${strengthText[strength - 1] || 'Very Weak'}</span></div>`;passwordField.parentNode.appendChild(indicator);}
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php // include 'includes/footer.php'; ?>

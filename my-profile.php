@@ -251,6 +251,16 @@ include 'includes/header.php';
                         </a>
                     </div>
                 </div>
+                
+                <div class="bg-card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-foreground mb-4">The Danger Zone</h3>
+                    <div class="space-y-3">
+                        <a href="/delete-account?u=<?php echo escapeHtml($user['id']); ?>" class="flex items-center space-x-2 text-destructive hover:text-destructive/80 transition-colors">
+                            <i data-lucide="trash" class="w-4 h-4"></i>
+                            <span>Delete Account</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
