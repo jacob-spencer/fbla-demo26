@@ -1,6 +1,8 @@
 # Mainstreet.lt
 FBLA Coding and Programming 2025-26 Project
 
+THIS THING WAS A TURD LOL
+
 ## Overview
 
 Mainstreet.lt is a local business discovery platform that helps users connect with businesses in their community. The platform enables users to find services, read reviews, and discover exclusive deals from local establishments.
