@@ -46,6 +46,22 @@ function getOS() {
     return 'Other';
 }
 
+function getFlags_is_pwa_is_mobile() {
+    // if the app is running on the mobile chances are its PWA anyways
+    // if it isn't, fuck it we still need to apply the same fixes
+    if(preg_match('/android/i', $ua)) return true;
+    if (preg_match('/iphone|ipad|ios/i', $ua)) return true;
+}
+
+function getFlags() {
+    // ts in prod returns a dictionary such
+    // "type"/is_flag
+    // so "is_pwa",false
+    // of course i forgot to commit it and im in a place
+    // with no computer access so use your imaginations
+    // or the fuckass "getFlags_is_pwa_is_mobile" i just threw in
+}
+
 function requireAuth() {
     if (!isLoggedIn()) {
         header('Location: /auth.php');
